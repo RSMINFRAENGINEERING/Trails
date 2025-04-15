@@ -257,7 +257,7 @@
           <option>Petrol</option>
           <option>Diesel</option>
           <option>Electric</option>
-          <option>CNG</option>
+          <option> penso
           <option>None</option>
         </select>
       </label>
@@ -404,7 +404,7 @@
 
     const tripTemplate = (tripId, memberId) => `
       <div class="entry" data-trip-id="${tripId}">
-        <label>Trip ID: <input type="text" name="trip_id_${memberId}" readonly value="${tripId}"></label>
+        <label>Trip ID: <input type="text" name="trip_id_${memberId}_${tripId}" readonly value="${tripId}"></label>
         <label>Mode:
           <select name="mode_of_transport_${memberId}_${tripId}" onchange="toggleConditionalFields(this)" required>
             <option value="" selected>Please Select</option>
@@ -627,15 +627,15 @@
 
       // Vehicles
       document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
-        const vehType = entry.querySelector('select[name="veh_type[]"]').value;
+        const vehType = entry.querySelector('select[name="veh_type[]"]')?.value;
         if (vehType) {
           data.vehicles.push({
             household_id: data.household.household_id,
             vehicle_number: i + 1,
             veh_type: vehType,
-            ownership_type: entry.querySelector('select[name="ownership_type[]"]').value,
-            fuel_type: entry.querySelector('select[name="fuel_type[]"]').value,
-            parking_type: entry.querySelector('select[name="parking_type[]"]').value,
+            ownership_type: entry.querySelector('select[name="ownership_type[]"]')?.value || '',
+            fuel_type: entry.querySelector('select[name="fuel_type[]"]')?.value || '',
+            parking_type: entry.querySelector('select[name="parking_type[]"]')?.value || '',
             surveyor_name: data.household.surveyor_name,
             timestamp: timestamp
           });
@@ -645,24 +645,24 @@
       // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
         const memberId = member.dataset.memberId;
-        const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`).value;
+        const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`)?.value;
 
         // Add Member
         const memberData = {
           household_id: data.household.household_id,
           member_id: memberId,
-          relation: member.querySelector(`select[name="relation_${memberId}"]`).value,
-          age: member.querySelector(`input[name="age_${memberId}"]`).value,
-          gender: member.querySelector(`select[name="gender_${memberId}"]`).value,
-          marital_status: member.querySelector(`select[name="marital_status_${memberId}"]`).value,
-          education: member.querySelector(`select[name="education_${memberId}"]`).value,
-          occupation: member.querySelector(`select[name="occupation_${memberId}"]`).value,
-          employment_place: member.querySelector(`select[name="employment_place_${memberId}"]`).value,
-          income_personal: member.querySelector(`select[name="income_personal_${memberId}"]`).value,
-          license: member.querySelector(`select[name="license_${memberId}"]`).value,
-          travel_pass: member.querySelector(`select[name="travel_pass_${memberId}"]`).value,
-          pass_cost: member.querySelector(`input[name="pass_cost_${memberId}"]`).value,
-          travel_expense: member.querySelector(`input[name="travel_expense_${memberId}"]`).value,
+          relation: member.querySelector(`select[name="relation_${memberId}"]`)?.value || '',
+          age: member.querySelector(`input[name="age_${memberId}"]`)?.value || '',
+          gender: member.querySelector(`select[name="gender_${memberId}"]`)?.value || '',
+          marital_status: member.querySelector(`select[name="marital_status_${memberId}"]`)?.value || '',
+          education: member.querySelector(`select[name="education_${memberId}"]`)?.value || '',
+          occupation: member.querySelector(`select[name="occupation_${memberId}"]`)?.value || '',
+          employment_place: member.querySelector(`select[name="employment_place_${memberId}"]`)?.value || '',
+          income_personal: member.querySelector(`select[name="income_personal_${memberId}"]`)?.value || '',
+          license: member.querySelector(`select[name="license_${memberId}"]`)?.value || '',
+          travel_pass: member.querySelector(`select[name="travel_pass_${memberId}"]`)?.value || '',
+          pass_cost: member.querySelector(`input[name="pass_cost_${memberId}"]`)?.value || '',
+          travel_expense: member.querySelector(`input[name="travel_expense_${memberId}"]`)?.value || '',
           surveyor_name: data.household.surveyor_name,
           timestamp: timestamp
         };
@@ -683,15 +683,15 @@
               household_id: data.household.household_id,
               member_id: memberId,
               trip_id: tripId,
-              mode_of_transport: trip.querySelector(`select[name="mode_of_transport_${memberId}_${tripId}"]`).value,
-              origin_name: trip.querySelector(`input[name="origin_name_${memberId}_${tripId}"]`).value,
-              destination_name: trip.querySelector(`input[name="destination_name_${memberId}_${tripId}"]`).value,
-              start_time: trip.querySelector(`input[name="start_time_${memberId}_${tripId}"]`).value,
-              end_time: trip.querySelector(`input[name="end_time_${memberId}_${tripId}"]`).value,
-              travel_cost: trip.querySelector(`input[name="travel_cost_${memberId}_${tripId}"]`).value,
-              travel_time: trip.querySelector(`input[name="travel_time_${memberId}_${tripId}"]`).value,
-              trip_purpose: trip.querySelector(`select[name="trip_purpose_${memberId}_${tripId}"]`).value,
-              num_transfers: trip.querySelector(`input[name="num_transfers_${memberId}_${tripId}"]`).value || '0',
+              mode_of_transport: trip.querySelector(`select[name="mode_of_transport_${memberId}_${tripId}"]`)?.value || '',
+              origin_name: trip.querySelector(`input[name="origin_name_${memberId}_${tripId}"]`)?.value || '',
+              destination_name: trip.querySelector(`input[name="destination_name_${memberId}_${tripId}"]`)?.value || '',
+              start_time: trip.querySelector(`input[name="start_time_${memberId}_${tripId}"]`)?.value || '',
+              end_time: trip.querySelector(`input[name="end_time_${memberId}_${tripId}"]`)?.value || '',
+              travel_cost: trip.querySelector(`input[name="travel_cost_${memberId}_${tripId}"]`)?.value || '',
+              travel_time: trip.querySelector(`input[name="travel_time_${memberId}_${tripId}"]`)?.value || '',
+              trip_purpose: trip.querySelector(`select[name="trip_purpose_${memberId}_${tripId}"]`)?.value || '',
+              num_transfers: trip.querySelector(`input[name="num_transfers_${memberId}_${tripId}"]`)?.value || '0',
               surveyor_name: data.household.surveyor_name,
               timestamp: timestamp
             };
@@ -706,12 +706,12 @@
                 household_id: data.household.household_id,
                 member_id: memberId,
                 trip_id: tripId,
-                transfer_id: transfer.querySelector(`input[name="transfer_id_${memberId}_${tripId}_${i}"]`).value,
-                stop_name: transfer.querySelector(`input[name="transfer_stop_name_${memberId}_${tripId}_${i}"]`).value || '',
-                mode: transfer.querySelector(`select[name="transfer_mode_${memberId}_${tripId}_${i}"]`).value || '',
-                cost: transfer.querySelector(`input[name="transfer_cost_${memberId}_${tripId}_${i}"]`).value || '',
-                time: transfer.querySelector(`input[name="transfer_time_${memberId}_${tripId}_${i}"]`).value || '',
-                waiting_time: transfer.querySelector(`input[name="transfer_waiting_time_${memberId}_${tripId}_${i}"]`).value || '',
+                transfer_id: transfer.querySelector(`input[name="transfer_id_${memberId}_${tripId}_${i}"]`)?.value || '',
+                stop_name: transfer.querySelector(`input[name="transfer_stop_name_${memberId}_${tripId}_${i}"]`)?.value || '',
+                mode: transfer.querySelector(`select[name="transfer_mode_${memberId}_${tripId}_${i}"]`)?.value || '',
+                cost: transfer.querySelector(`input[name="transfer_cost_${memberId}_${tripId}_${i}"]`)?.value || '',
+                time: transfer.querySelector(`input[name="transfer_time_${memberId}_${tripId}_${i}"]`)?.value || '',
+                waiting_time: transfer.querySelector(`input[name="transfer_waiting_time_${memberId}_${tripId}_${i}"]`)?.value || '',
                 surveyor_name: data.household.surveyor_name,
                 timestamp: timestamp
               };
@@ -789,6 +789,8 @@
       } catch (e) {
         alert('Error submitting survey: ' + e.message);
         saveToLocalExcel(data);
+        document.getElementById('survey-form').reset();
+        resetForm();
       }
     }
 
