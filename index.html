@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Household Survey Form</title>
-  <link rel="icon" href="data:;base64,iVBORw0KGgo="> <!-- Suppress favicon.ico request -->
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -217,7 +217,7 @@
     <label>To: <input type="date" id="to_date"></label>
     <button type="button" id="download-btn" onclick="downloadExcel()">Download & Share</button>
   </form>
-  <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec/exec" method="POST" target="hidden-iframe">
+  <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec" method="POST" target="hidden-iframe">
     <input type="hidden" name="data" id="hidden-data">
   </form>
   <iframe name="hidden-iframe" style="display: none;" onload="handleIframeLoad()"></iframe>
@@ -227,7 +227,7 @@
     const householdId = `H${Date.now()}`;
     document.getElementById('household_id').value = householdId;
     document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
-    let memberIdCounter = 0, tripCounters = {};
+    let memberIdCounter = 0, tripCounters = {}, transferCounters = {};
     let lastSubmissionStatus = null;
 
     if (!localStorage.getItem('surveyData')) localStorage.setItem('surveyData', JSON.stringify([]));
@@ -403,7 +403,7 @@
       </div>`;
 
     const tripTemplate = (tripId) => `
-      <div class="entry">
+      <div class="entry" data-trip-id="${tripId}">
         <label>Trip ID: <input type="text" name="trip_id[]" readonly value="${tripId}"></label>
         <label>Mode:
           <select name="mode_of_transport[]" onchange="toggleConditionalFields(this)" required>
@@ -447,9 +447,10 @@
         </div>
       </div>`;
 
-    const transferTemplate = (i) => `
-      <div class="entry">
+    const transferTemplate = (i, transferId) => `
+      <div class="entry" data-transfer-id="${transferId}">
         <h4>Transfer ${i + 1}</h4>
+        <label>Transfer ID: <input type="text" name="transfer_id_${i}[]" readonly value="${transferId}"></label>
         <label>Stop: <input type="text" name="transfer_stop_name_${i}[]"></label>
         <label>Mode:
           <select name="transfer_mode_${i}[]" required>
@@ -469,7 +470,7 @@
         </label>
         <label>Cost (Rs.): <input type="number" name="transfer_cost_${i}[]" min="0"></label>
         <label>Time (min): <input type="number" name="transfer_time_${i}[]" min="0"></label>
-        <label>Waiting (min): <input type="number" name="transfer_waiting_time_${i}[]" min="0"></label>
+        <label>Waiting Time (min): <input type="number" name="transfer_waiting_time_${i}[]" min="0"></label>
       </div>`;
 
     // Initialize first member
@@ -507,6 +508,7 @@
       memberIdCounter++;
       const memberId = `M${memberIdCounter}`;
       tripCounters[memberId] = 0;
+      transferCounters[memberId] = {};
       const members = document.getElementById('members');
       const div = document.createElement('div');
       div.innerHTML = memberTemplate(memberId);
@@ -517,7 +519,8 @@
       const memberEntry = button.closest('.entry');
       const memberId = memberEntry.dataset.memberId;
       tripCounters[memberId]++;
-      const tripId = `${householdId}-${memberId}-T${tripCounters[memberId]}`;
+      const tripId = `T${tripCounters[memberId]}`;
+      transferCounters[memberId][tripId] = 0;
       const trips = memberEntry.querySelector('.trip-entries');
       const div = document.createElement('div');
       div.innerHTML = tripTemplate(tripId);
@@ -549,16 +552,22 @@
 
     function updateTransferFields(input) {
       const num = parseInt(input.value) || 0;
+      const tripEntry = input.closest('.entry');
+      const tripId = tripEntry.dataset.tripId;
+      const memberEntry = input.closest('.entry[data-member-id]');
+      const memberId = memberEntry.dataset.memberId;
       const transfers = input.closest('.conditional-fields').querySelector('.transfer-entries');
       transfers.innerHTML = '';
+      transferCounters[memberId][tripId] = num;
       for (let i = 0; i < num; i++) {
-        transfers.innerHTML += transferTemplate(i);
+        const transferId = `TR${i + 1}`;
+        transfers.innerHTML += transferTemplate(i, transferId);
       }
     }
 
     function handleIframeLoad() {
       if (lastSubmissionStatus) {
-        lastSubmissionStatus.resolve({ success: true }); // Assume success unless we add server-side validation
+        lastSubmissionStatus.resolve({ success: true });
       }
     }
 
@@ -632,6 +641,7 @@
         transfers: []
       };
 
+      // Vehicles
       document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
         data.vehicles.push({
           household_id: data.household.household_id,
@@ -639,14 +649,19 @@
           veh_type: entry.querySelector('select[name="veh_type[]"]').value,
           ownership_type: entry.querySelector('select[name="ownership_type[]"]').value,
           fuel_type: entry.querySelector('select[name="fuel_type[]"]').value,
-          parking_type: entry.querySelector('select[name="parking_type[]"]').value
+          parking_type: entry.querySelector('select[name="parking_type[]"]').value,
+          submission_date: data.household.submission_date,
+          surveyor_name: data.household.surveyor_name
         });
       });
 
+      // Members and Trips
       let tripIndex = 0;
       document.querySelectorAll('#members .entry').forEach((member, mIdx) => {
         const memberId = formData.getAll('member_id[]')[mIdx];
         const hasTrips = formData.getAll('has_trips[]')[mIdx];
+        
+        // Add Member
         data.members.push({
           household_id: data.household.household_id,
           member_id: memberId,
@@ -661,15 +676,19 @@
           license: formData.getAll('license[]')[mIdx],
           travel_pass: formData.getAll('travel_pass[]')[mIdx],
           pass_cost: formData.getAll('pass_cost[]')[mIdx],
-          travel_expense: formData.getAll('travel_expense[]')[mIdx]
+          travel_expense: formData.getAll('travel_expense[]')[mIdx],
+          submission_date: data.household.submission_date,
+          surveyor_name: data.household.surveyor_name
         });
 
+        // Add Trips and Transfers
         if (hasTrips === 'yes') {
           member.querySelectorAll('.trip-entries .entry').forEach((trip) => {
+            const tripId = formData.getAll('trip_id[]')[tripIndex];
             const tripData = {
               household_id: data.household.household_id,
               member_id: memberId,
-              trip_id: formData.getAll('trip_id[]')[tripIndex],
+              trip_id: tripId,
               mode_of_transport: formData.getAll('mode_of_transport[]')[tripIndex],
               origin_name: formData.getAll('origin_name[]')[tripIndex],
               destination_name: formData.getAll('destination_name[]')[tripIndex],
@@ -678,22 +697,27 @@
               travel_cost: formData.getAll('travel_cost[]')[tripIndex],
               travel_time: formData.getAll('travel_time[]')[tripIndex],
               trip_purpose: formData.getAll('trip_purpose[]')[tripIndex],
-              num_transfers: formData.getAll('num_transfers[]')[tripIndex] || '0'
+              num_transfers: formData.getAll('num_transfers[]')[tripIndex] || '0',
+              submission_date: data.household.submission_date,
+              surveyor_name: data.household.surveyor_name
             };
             data.trips.push(tripData);
 
+            // Add Transfers
             const numTransfers = parseInt(tripData.num_transfers) || 0;
             for (let i = 0; i < numTransfers; i++) {
               data.transfers.push({
                 household_id: data.household.household_id,
                 member_id: memberId,
-                trip_id: tripData.trip_id,
-                transfer_number: i + 1,
+                trip_id: tripId,
+                transfer_id: formData.getAll(`transfer_id_${i}[]`)[tripIndex] || `TR${i + 1}`,
                 stop_name: formData.getAll(`transfer_stop_name_${i}[]`)[tripIndex] || '',
                 mode: formData.getAll(`transfer_mode_${i}[]`)[tripIndex] || '',
                 cost: formData.getAll(`transfer_cost_${i}[]`)[tripIndex] || '',
                 time: formData.getAll(`transfer_time_${i}[]`)[tripIndex] || '',
-                waiting_time: formData.getAll(`transfer_waiting_time_${i}[]`)[tripIndex] || ''
+                waiting_time: formData.getAll(`transfer_waiting_time_${i}[]`)[tripIndex] || '',
+                submission_date: data.household.submission_date,
+                surveyor_name: data.household.surveyor_name
               });
             }
             tripIndex++;
@@ -710,13 +734,11 @@
       const result = await submitToGoogleSheets(data);
       if (result.success) {
         alert('Survey submitted to Google Sheets!');
-        // Disable download button
         document.getElementById('download-btn').disabled = true;
         this.reset();
         resetForm();
       } else {
         alert('Error submitting survey. Data saved locally for retry. Please check script permissions.');
-        // Disable download button
         document.getElementById('download-btn').disabled = true;
         this.reset();
         resetForm();
@@ -731,8 +753,8 @@
       document.getElementById('members').innerHTML = '';
       memberIdCounter = 0;
       tripCounters = {};
+      transferCounters = {};
       addMember();
-      // Re-enable download button for new form
       document.getElementById('download-btn').disabled = false;
     }
 
@@ -751,10 +773,10 @@
 
       storedData.forEach(item => {
         households.push(item.household);
-        item.vehicles.forEach(v => vehicles.push({ ...v, submission_date: item.household.submission_date, surveyor_name: item.household.surveyor_name }));
-        item.members.forEach(m => members.push({ ...m, submission_date: item.household.submission_date, surveyor_name: item.household.surveyor_name }));
-        item.trips.forEach(t => trips.push({ ...t, submission_date: item.household.submission_date, surveyor_name: item.household.surveyor_name }));
-        item.transfers.forEach(t => transfers.push({ ...t, submission_date: item.household.submission_date, surveyor_name: item.household.surveyor_name }));
+        vehicles.push(...item.vehicles);
+        members.push(...item.members);
+        trips.push(...item.trips);
+        transfers.push(...item.transfers);
       });
 
       const wb = XLSX.utils.book_new();
