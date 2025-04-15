@@ -207,6 +207,7 @@
       </select>
     </label>
     <label>Suggestions: <textarea name="pt_suggestions"></textarea></label>
+    <label>Door No.: <input type="text" name="door_no"></label>
 
     <h2>Personal Information</h2>
     <div id="members"></div>
@@ -271,9 +272,9 @@
 
     const memberTemplate = (memberId) => `
       <div class="entry" data-member-id="${memberId}">
-        <label>Member ID: <input type="text" name="member_id" readonly value="${memberId}"></label>
+        <label>Member ID: <input type="text" name="member_id_${memberId}" readonly value="${memberId}"></label>
         <label>Relation:
-          <select name="relation" required>
+          <select name="relation_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option value="1">Self</option>
             <option value="2">Spouse</option>
@@ -284,9 +285,9 @@
             <option value="7">Other</option>
           </select>
         </label>
-        <label>Age: <input type="number" name="age" min="0"></label>
+        <label>Age: <input type="number" name="age_${memberId}" min="0"></label>
         <label>Gender:
-          <select name="gender" required>
+          <select name="gender_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option value="1">Male</option>
             <option value="2">Female</option>
@@ -294,14 +295,14 @@
           </select>
         </label>
         <label>Marital Status:
-          <select name="marital_status" required>
+          <select name="marital_status_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option>Married</option>
             <option>Unmarried</option>
           </select>
         </label>
         <label>Education:
-          <select name="education" required>
+          <select name="education_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option value="1">Illiterate</option>
             <option value="2">Pre-Primary</option>
@@ -315,7 +316,7 @@
           </select>
         </label>
         <label>Occupation:
-          <select name="occupation" required>
+          <select name="occupation_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option value="1">Full-Time</option>
             <option value="2">Part-Time</option>
@@ -331,7 +332,7 @@
           </select>
         </label>
         <label>Workplace:
-          <select name="employment_place" required>
+          <select name="employment_place_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option value="1">Residential</option>
             <option value="2">Industry</option>
@@ -351,7 +352,7 @@
           </select>
         </label>
         <label>Income (Rs.):
-          <select name="income_personal" required>
+          <select name="income_personal_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option value="0">0</option>
             <option value="1-2500">1 - 2,500</option>
@@ -368,7 +369,7 @@
           </select>
         </label>
         <label>License:
-          <select name="license" required>
+          <select name="license_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option value="1">None</option>
             <option value="2">Two-Wheeler</option>
@@ -378,7 +379,7 @@
           </select>
         </label>
         <label>Travel Pass:
-          <select name="travel_pass" required>
+          <select name="travel_pass_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option value="1">None</option>
             <option value="2">Rail</option>
@@ -386,10 +387,10 @@
             <option value="4">Other</option>
           </select>
         </label>
-        <label>Pass Cost (Rs.): <input type="number" name="pass_cost" min="0"></label>
-        <label>Travel Expense (Rs.): <input type="number" name="travel_expense" min="0"></label>
+        <label>Pass Cost (Rs.): <input type="number" name="pass_cost_${memberId}" min="0"></label>
+        <label>Travel Expense (Rs.): <input type="number" name="travel_expense_${memberId}" min="0"></label>
         <label>Has Trips?:
-          <select name="has_trips" onchange="toggleTrips(this)" required>
+          <select name="has_trips_${memberId}" onchange="toggleTrips(this)" required>
             <option value="" selected>Please Select</option>
             <option value="yes">Yes</option>
             <option value="no">No</option>
@@ -402,11 +403,11 @@
         </div>
       </div>`;
 
-    const tripTemplate = (tripId) => `
+    const tripTemplate = (tripId, memberId) => `
       <div class="entry" data-trip-id="${tripId}">
-        <label>Trip ID: <input type="text" name="trip_id" readonly value="${tripId}"></label>
+        <label>Trip ID: <input type="text" name="trip_id_${memberId}" readonly value="${tripId}"></label>
         <label>Mode:
-          <select name="mode_of_transport" onchange="toggleConditionalFields(this)" required>
+          <select name="mode_of_transport_${memberId}_${tripId}" onchange="toggleConditionalFields(this)" required>
             <option value="" selected>Please Select</option>
             <option value="1">Walk</option>
             <option value="2">Bicycle</option>
@@ -422,14 +423,14 @@
             <option value="12">App Auto</option>
           </select>
         </label>
-        <label>Origin: <input type="text" name="origin_name"></label>
-        <label>Destination: <input type="text" name="destination_name"></label>
-        <label>Start Time: <input type="time" name="start_time"></label>
-        <label>End Time: <input type="time" name="end_time"></label>
-        <label>Cost (Rs.): <input type="number" name="travel_cost" min="0"></label>
-        <label>Travel Time (Minutes): <input type="number" name="travel_time" min="0"></label>
+        <label>Origin: <input type="text" name="origin_name_${memberId}_${tripId}"></label>
+        <label>Destination: <input type="text" name="destination_name_${memberId}_${tripId}"></label>
+        <label>Start Time: <input type="time" name="start_time_${memberId}_${tripId}"></label>
+        <label>End Time: <input type="time" name="end_time_${memberId}_${tripId}"></label>
+        <label>Cost (Rs.): <input type="number" name="travel_cost_${memberId}_${tripId}" min="0"></label>
+        <label>Travel Time (Minutes): <input type="number" name="travel_time_${memberId}_${tripId}" min="0"></label>
         <label>Purpose:
-          <select name="trip_purpose" required>
+          <select name="trip_purpose_${memberId}_${tripId}" required>
             <option value="" selected>Please Select</option>
             <option value="1">Work</option>
             <option value="2">Education</option>
@@ -441,19 +442,19 @@
         </label>
         <div class="conditional-fields" style="display: none;">
           <label>Transfers:
-            <input type="number" name="num_transfers" min="0" max="5" onchange="updateTransferFields(this)">
+            <input type="number" name="num_transfers_${memberId}_${tripId}" min="0" max="5" onchange="updateTransferFields(this)">
           </label>
           <div class="transfer-entries"></div>
         </div>
       </div>`;
 
-    const transferTemplate = (i, transferId) => `
+    const transferTemplate = (i, transferId, memberId, tripId) => `
       <div class="entry" data-transfer-id="${transferId}">
         <h4>Transfer ${i + 1}</h4>
-        <label>Transfer ID: <input type="text" name="transfer_id" readonly value="${transferId}"></label>
-        <label>Stop: <input type="text" name="transfer_stop_name"></label>
+        <label>Transfer ID: <input type="text" name="transfer_id_${memberId}_${tripId}_${i}" readonly value="${transferId}"></label>
+        <label>Stop: <input type="text" name="transfer_stop_name_${memberId}_${tripId}_${i}"></label>
         <label>Mode:
-          <select name="transfer_mode" required>
+          <select name="transfer_mode_${memberId}_${tripId}_${i}" required>
             <option value="" selected>Please Select</option>
             <option>Walk</option>
             <option>Bicycle</option>
@@ -468,9 +469,9 @@
             <option>App Auto</option>
           </select>
         </label>
-        <label>Cost (Rs.): <input type="number" name="transfer_cost" min="0"></label>
-        <label>Time (min): <input type="number" name="transfer_time" min="0"></label>
-        <label>Waiting Time (min): <input type="number" name="transfer_waiting_time" min="0"></label>
+        <label>Cost (Rs.): <input type="number" name="transfer_cost_${memberId}_${tripId}_${i}" min="0"></label>
+        <label>Time (min): <input type="number" name="transfer_time_${memberId}_${tripId}_${i}" min="0"></label>
+        <label>Waiting Time (min): <input type="number" name="transfer_waiting_time_${memberId}_${tripId}_${i}" min="0"></label>
       </div>`;
 
     // Initialize first member
@@ -519,11 +520,11 @@
       const memberEntry = button.closest('.entry');
       const memberId = memberEntry.dataset.memberId;
       tripCounters[memberId]++;
-      const tripId = `T${tripCounters[memberId]}`;
+      const tripId = `${memberId}-T${tripCounters[memberId]}`;
       transferCounters[memberId][tripId] = 0;
       const trips = memberEntry.querySelector('.trip-entries');
       const div = document.createElement('div');
-      div.innerHTML = tripTemplate(tripId);
+      div.innerHTML = tripTemplate(tripId, memberId);
       trips.appendChild(div);
     }
 
@@ -546,7 +547,7 @@
       fields.style.display = ['3', '8', '9'].includes(select.value) ? 'block' : 'none';
       if (fields.style.display === 'none') {
         fields.querySelector('.transfer-entries').innerHTML = '';
-        fields.querySelector('input[name="num_transfers"]').value = '';
+        fields.querySelector('input[name^="num_transfers_"]').value = '';
       }
     }
 
@@ -561,7 +562,7 @@
       transferCounters[memberId][tripId] = num;
       for (let i = 0; i < num; i++) {
         const transferId = `TR${i + 1}`;
-        transfers.innerHTML += transferTemplate(i, transferId);
+        transfers.innerHTML += transferTemplate(i, transferId, memberId, tripId);
       }
     }
 
@@ -635,7 +636,8 @@
           waiting_time: formData.get('waiting_time'),
           weekly_usage: formData.get('weekly_usage'),
           pt_feedback: formData.get('pt_feedback'),
-          pt_suggestions: formData.get('pt_suggestions')
+          pt_suggestions: formData.get('pt_suggestions'),
+          door_no: formData.get('door_no')
         },
         vehicles: [],
         members: [],
@@ -659,25 +661,25 @@
 
       // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
-        const memberId = member.querySelector('input[name="member_id"]').value;
-        const hasTrips = member.querySelector('select[name="has_trips"]').value;
+        const memberId = member.dataset.memberId;
+        const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`).value;
 
         // Add Member
-        data.members.push({
+        data.members sekitr.push({
           household_id: data.household.household_id,
           member_id: memberId,
-          relation: member.querySelector('select[name="relation"]').value,
-          age: member.querySelector('input[name="age"]').value,
-          gender: member.querySelector('select[name="gender"]').value,
-          marital_status: member.querySelector('select[name="marital_status"]').value,
-          education: member.querySelector('select[name="education"]').value,
-          occupation: member.querySelector('select[name="occupation"]').value,
-          employment_place: member.querySelector('select[name="employment_place"]').value,
-          income_personal: member.querySelector('select[name="income_personal"]').value,
-          license: member.querySelector('select[name="license"]').value,
-          travel_pass: member.querySelector('select[name="travel_pass"]').value,
-          pass_cost: member.querySelector('input[name="pass_cost"]').value,
-          travel_expense: member.querySelector('input[name="travel_expense"]').value,
+          relation: member.querySelector(`select[name="relation_${memberId}"]`).value,
+          age: member.querySelector(`input[name="age_${memberId}"]`).value,
+          gender: member.querySelector(`select[name="gender_${memberId}"]`).value,
+          marital_status: member.querySelector(`select[name="marital_status_${memberId}"]`).value,
+          education: member.querySelector(`select[name="education_${memberId}"]`).value,
+          occupation: member.querySelector(`select[name="occupation_${memberId}"]`).value,
+          employment_place: member.querySelector(`select[name="employment_place_${memberId}"]`).value,
+          income_personal: member.querySelector(`select[name="income_personal_${memberId}"]`).value,
+          license: member.querySelector(`select[name="license_${memberId}"]`).value,
+          travel_pass: member.querySelector(`select[name="travel_pass_${memberId}"]`).value,
+          pass_cost: member.querySelector(`input[name="pass_cost_${memberId}"]`).value,
+          travel_expense: member.querySelector(`input[name="travel_expense_${memberId}"]`).value,
           surveyor_name: data.household.surveyor_name,
           timestamp: timestamp
         });
@@ -685,20 +687,20 @@
         // Add Trips and Transfers
         if (hasTrips === 'yes') {
           member.querySelectorAll('.trip-entries .entry').forEach((trip) => {
-            const tripId = trip.querySelector('input[name="trip_id"]').value;
+            const tripId = trip.dataset.tripId;
             const tripData = {
               household_id: data.household.household_id,
               member_id: memberId,
               trip_id: tripId,
-              mode_of_transport: trip.querySelector('select[name="mode_of_transport"]').value,
-              origin_name: trip.querySelector('input[name="origin_name"]').value,
-              destination_name: trip.querySelector('input[name="destination_name"]').value,
-              start_time: trip.querySelector('input[name="start_time"]').value,
-              end_time: trip.querySelector('input[name="end_time"]').value,
-              travel_cost: trip.querySelector('input[name="travel_cost"]').value,
-              travel_time: trip.querySelector('input[name="travel_time"]').value,
-              trip_purpose: trip.querySelector('select[name="trip_purpose"]').value,
-              num_transfers: trip.querySelector('input[name="num_transfers"]').value || '0',
+              mode_of_transport: trip.querySelector(`select[name="mode_of_transport_${memberId}_${tripId}"]`).value,
+              origin_name: trip.querySelector(`input[name="origin_name_${memberId}_${tripId}"]`).value,
+              destination_name: trip.querySelector(`input[name="destination_name_${memberId}_${tripId}"]`).value,
+              start_time: trip.querySelector(`input[name="start_time_${memberId}_${tripId}"]`).value,
+              end_time: trip.querySelector(`input[name="end_time_${memberId}_${tripId}"]`).value,
+              travel_cost: trip.querySelector(`input[name="travel_cost_${memberId}_${tripId}"]`).value,
+              travel_time: trip.querySelector(`input[name="travel_time_${memberId}_${tripId}"]`).value,
+              trip_purpose: trip.querySelector(`select[name="trip_purpose_${memberId}_${tripId}"]`).value,
+              num_transfers: trip.querySelector(`input[name="num_transfers_${memberId}_${tripId}"]`).value || '0',
               surveyor_name: data.household.surveyor_name,
               timestamp: timestamp
             };
@@ -706,17 +708,17 @@
 
             // Add Transfers
             const numTransfers = parseInt(tripData.num_transfers) || 0;
-            trip.querySelectorAll('.transfer-entries .entry').forEach((transfer) => {
+            trip.querySelectorAll('.transfer-entries .entry').forEach((transfer, i) => {
               data.transfers.push({
                 household_id: data.household.household_id,
                 member_id: memberId,
                 trip_id: tripId,
-                transfer_id: transfer.querySelector('input[name="transfer_id"]').value,
-                stop_name: transfer.querySelector('input[name="transfer_stop_name"]').value || '',
-                mode: transfer.querySelector('select[name="transfer_mode"]').value || '',
-                cost: transfer.querySelector('input[name="transfer_cost"]').value || '',
-                time: transfer.querySelector('input[name="transfer_time"]').value || '',
-                waiting_time: transfer.querySelector('input[name="transfer_waiting_time"]').value || '',
+                transfer_id: transfer.querySelector(`input[name="transfer_id_${memberId}_${tripId}_${i}"]`).value,
+                stop_name: transfer.querySelector(`input[name="transfer_stop_name_${memberId}_${tripId}_${i}"]`).value || '',
+                mode: transfer.querySelector(`select[name="transfer_mode_${memberId}_${tripId}_${i}"]`).value || '',
+                cost: transfer.querySelector(`input[name="transfer_cost_${memberId}_${tripId}_${i}"]`).value || '',
+                time: transfer.querySelector(`input[name="transfer_time_${memberId}_${tripId}_${i}"]`).value || '',
+                waiting_time: transfer.querySelector(`input[name="transfer_waiting_time_${memberId}_${tripId}_${i}"]`).value || '',
                 surveyor_name: data.household.surveyor_name,
                 timestamp: timestamp
               });
