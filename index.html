@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Household Survey Form</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo="> <!-- Suppress favicon.ico request -->
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -219,7 +220,7 @@
   <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxQuv6CCeCRIl2gus7x0b7zWTNV3S1jObt5koVYI_aVKx6bqhWWZx6fp-OWwIto8Jqb4w/exec" method="POST" target="hidden-iframe">
     <input type="hidden" name="data" id="hidden-data">
   </form>
-  <iframe name="hidden-iframe" style="display: none;"></iframe>
+  <iframe name="hidden-iframe" style="display: none;" onload="handleIframeLoad()"></iframe>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
@@ -227,6 +228,7 @@
     document.getElementById('household_id').value = householdId;
     document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
     let memberIdCounter = 0, tripCounters = {};
+    let lastSubmissionStatus = null;
 
     if (!localStorage.getItem('surveyData')) localStorage.setItem('surveyData', JSON.stringify([]));
 
@@ -317,7 +319,7 @@
             <option value="" selected>Please Select</option>
             <option value="1">Full-Time</option>
             <option value="2">Part-Time</option>
-            <    <option value="3">Business</option>
+            <option value="3">Business</option>
             <option value="4">Employer Business</option>
             <option value="5">Daily Wages</option>
             <option value="6">Student</option>
@@ -554,14 +556,18 @@
       }
     }
 
+    function handleIframeLoad() {
+      if (lastSubmissionStatus) {
+        lastSubmissionStatus.resolve({ success: true }); // Assume success unless we add server-side validation
+      }
+    }
+
     function submitToGoogleSheets(data) {
       return new Promise((resolve) => {
         const hiddenForm = document.getElementById('hidden-form');
         const hiddenData = document.getElementById('hidden-data');
         hiddenData.value = JSON.stringify(data);
-        hiddenForm.addEventListener('submit', () => {
-          setTimeout(() => resolve({ success: true }), 1000); // Simulate success
-        }, { once: true });
+        lastSubmissionStatus = { resolve };
         hiddenForm.submit();
       });
     }
@@ -695,23 +701,21 @@
         }
       });
 
+      // Store in localStorage as backup
+      const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
+      storedData.push(data);
+      localStorage.setItem('surveyData', JSON.stringify(storedData));
+
       // Submit data to Google Sheets
       const result = await submitToGoogleSheets(data);
       if (result.success) {
         alert('Survey submitted to Google Sheets!');
-        // Store in localStorage as backup
-        const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
-        storedData.push(data);
-        localStorage.setItem('surveyData', JSON.stringify(storedData));
         // Disable download button
         document.getElementById('download-btn').disabled = true;
         this.reset();
         resetForm();
       } else {
-        alert('Error submitting survey. Data saved locally for retry.');
-        const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
-        storedData.push(data);
-        localStorage.setItem('surveyData', JSON.stringify(storedData));
+        alert('Error submitting survey. Data saved locally for retry. Please check script permissions.');
         // Disable download button
         document.getElementById('download-btn').disabled = true;
         this.reset();
