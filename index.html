@@ -84,11 +84,13 @@
   <form id="survey-form">
     <h2>Household Information</h2>
     <label>Surveyor Name: <input type="text" name="surveyor_name" required></label>
+    <label>Surveyor HHID: <input type="text" name="surveyor_hhid" required></label>
     <label>Household ID: <input type="text" name="household_id" id="household_id" readonly></label>
     <label>Submission Date: <input type="date" name="submission_date" id="submission_date" required></label>
     <label>Ward No.: <input type="text" name="ward_no" required></label>
     <label>TAZ No.: <input type="text" name="taz_no" required></label>
     <label>Head of Household: <input type="text" name="head_name" required></label>
+    <label>Door No.: <input type="text" name="door_no"></label>
     <label>Address: <input type="text" id="address" name="address" required>
       <button type="button" onclick="getLocation()">Get Location</button></label>
     <label>Latitude: <input type="text" id="latitude" name="latitude" readonly></label>
@@ -207,16 +209,13 @@
       </select>
     </label>
     <label>Suggestions: <textarea name="pt_suggestions"></textarea></label>
-    <label>Door No.: <input type="text" name="door_no"></label>
 
     <h2>Personal Information</h2>
     <div id="members"></div>
     <button type="button" onclick="addMember()">+ Add Member</button>
-    <button type="submit">Submit Survey</button>
-    <button type="button" onclick="retryFailedSubmissions()">Retry Failed Submissions</button>
-    <label>Export From: <input type="date" id="from_date"></label>
-    <label>To: <input type="date" id="to_date"></label>
-    <button type="button" id="download-btn" onclick="downloadExcel()">Download & Share</button>
+    <button type="button" onclick="submitLocal()">Submit Locally</button>
+    <button type="button" onclick="submitGoogleSheets()">Submit to Google Sheets</button>
+    <button type="button" onclick="downloadLocalExcel()">Download Local Records</button>
   </form>
   <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec" method="POST" target="hidden-iframe">
     <input type="hidden" name="data" id="hidden-data">
@@ -582,39 +581,21 @@
       });
     }
 
-    async function retryFailedSubmissions() {
-      const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
-      if (!storedData.length) {
-        alert('No failed submissions to retry.');
-        return;
-      }
-      let successCount = 0;
-      const newData = [];
-      for (const data of storedData) {
-        const result = await submitToGoogleSheets(data);
-        if (result.success) {
-          successCount++;
-        } else {
-          newData.push(data);
-        }
-      }
-      localStorage.setItem('surveyData', JSON.stringify(newData));
-      alert(`Retried ${storedData.length} submissions. ${successCount} succeeded, ${newData.length} still pending.`);
-    }
-
-    document.getElementById('survey-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const formData = new FormData(this);
+    function collectFormData() {
+      const form = document.getElementById('survey-form');
+      const formData = new FormData(form);
       const timestamp = new Date().toISOString();
       const data = {
         household: {
           household_id: formData.get('household_id'),
           surveyor_name: formData.get('surveyor_name'),
+          surveyor_hhid: formData.get('surveyor_hhid'),
           submission_date: formData.get('submission_date'),
           timestamp: timestamp,
           ward_no: formData.get('ward_no'),
           taz_no: formData.get('taz_no'),
           head_name: formData.get('head_name'),
+          door_no: formData.get('door_no'),
           address: formData.get('address'),
           latitude: formData.get('latitude'),
           longitude: formData.get('longitude'),
@@ -636,8 +617,7 @@
           waiting_time: formData.get('waiting_time'),
           weekly_usage: formData.get('weekly_usage'),
           pt_feedback: formData.get('pt_feedback'),
-          pt_suggestions: formData.get('pt_suggestions'),
-          door_no: formData.get('door_no')
+          pt_suggestions: formData.get('pt_suggestions')
         },
         vehicles: [],
         members: [],
@@ -647,16 +627,19 @@
 
       // Vehicles
       document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
-        data.vehicles.push({
-          household_id: data.household.household_id,
-          vehicle_number: i + 1,
-          veh_type: entry.querySelector('select[name="veh_type[]"]').value,
-          ownership_type: entry.querySelector('select[name="ownership_type[]"]').value,
-          fuel_type: entry.querySelector('select[name="fuel_type[]"]').value,
-          parking_type: entry.querySelector('select[name="parking_type[]"]').value,
-          surveyor_name: data.household.surveyor_name,
-          timestamp: timestamp
-        });
+        const vehType = entry.querySelector('select[name="veh_type[]"]').value;
+        if (vehType) {
+          data.vehicles.push({
+            household_id: data.household.household_id,
+            vehicle_number: i + 1,
+            veh_type: vehType,
+            ownership_type: entry.querySelector('select[name="ownership_type[]"]').value,
+            fuel_type: entry.querySelector('select[name="fuel_type[]"]').value,
+            parking_type: entry.querySelector('select[name="parking_type[]"]').value,
+            surveyor_name: data.household.surveyor_name,
+            timestamp: timestamp
+          });
+        }
       });
 
       // Members and Trips
@@ -665,7 +648,7 @@
         const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`).value;
 
         // Add Member
-        data.members sekitr.push({
+        const memberData = {
           household_id: data.household.household_id,
           member_id: memberId,
           relation: member.querySelector(`select[name="relation_${memberId}"]`).value,
@@ -682,11 +665,19 @@
           travel_expense: member.querySelector(`input[name="travel_expense_${memberId}"]`).value,
           surveyor_name: data.household.surveyor_name,
           timestamp: timestamp
-        });
+        };
+        if (memberData.relation) {
+          data.members.push(memberData);
+        }
 
         // Add Trips and Transfers
         if (hasTrips === 'yes') {
-          member.querySelectorAll('.trip-entries .entry').forEach((trip) => {
+          const tripEntries = member.querySelectorAll('.trip-entries .entry');
+          if (tripEntries.length === 0) {
+            alert('Please add at least one trip for this member.');
+            throw new Error('No trips added');
+          }
+          tripEntries.forEach((trip) => {
             const tripId = trip.dataset.tripId;
             const tripData = {
               household_id: data.household.household_id,
@@ -704,12 +695,14 @@
               surveyor_name: data.household.surveyor_name,
               timestamp: timestamp
             };
-            data.trips.push(tripData);
+            if (tripData.mode_of_transport) {
+              data.trips.push(tripData);
+            }
 
             // Add Transfers
             const numTransfers = parseInt(tripData.num_transfers) || 0;
             trip.querySelectorAll('.transfer-entries .entry').forEach((transfer, i) => {
-              data.transfers.push({
+              const transferData = {
                 household_id: data.household.household_id,
                 member_id: memberId,
                 trip_id: tripId,
@@ -721,58 +714,31 @@
                 waiting_time: transfer.querySelector(`input[name="transfer_waiting_time_${memberId}_${tripId}_${i}"]`).value || '',
                 surveyor_name: data.household.surveyor_name,
                 timestamp: timestamp
-              });
+              };
+              if (transferData.mode) {
+                data.transfers.push(transferData);
+              }
             });
           });
         }
       });
+      return data;
+    }
 
-      // Store in localStorage as backup
+    function saveToLocalExcel(data) {
       const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
       storedData.push(data);
       localStorage.setItem('surveyData', JSON.stringify(storedData));
-
-      // Submit data to Google Sheets
-      const result = await submitToGoogleSheets(data);
-      if (result.success) {
-        alert('Survey submitted to Google Sheets!');
-        document.getElementById('download-btn').disabled = true;
-        this.reset();
-        resetForm();
-      } else {
-        alert('Error submitting survey. Data saved locally for retry. Please check script permissions.');
-        document.getElementById('download-btn').disabled = true;
-        this.reset();
-        resetForm();
-      }
-    });
-
-    function resetForm() {
-      const newHouseholdId = `H${Date.now()}`;
-      document.getElementById('household_id').value = newHouseholdId;
-      document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('vehicles').innerHTML = '<div class="entry">' + vehicleTemplate + '</div>';
-      document.getElementById('members').innerHTML = '';
-      memberIdCounter = 0;
-      tripCounters = {};
-      transferCounters = {};
-      addMember();
-      document.getElementById('download-btn').disabled = false;
     }
 
-    function downloadExcel() {
-      const from = document.getElementById('from_date').value;
-      const to = document.getElementById('to_date').value;
-      if (!from || !to || from > to) return alert('Invalid date range.');
+    function downloadLocalExcel() {
+      const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
+      if (!storedData.length) {
+        alert('No local records found to download.');
+        return;
+      }
 
-      const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]').filter(
-        d => d.household.submission_date >= from && d.household.submission_date <= to
-      );
-      if (!storedData.length) return alert('No data found.');
-
-      const surveyor = storedData[storedData.length - 1].household.surveyor_name.replace(/\s+/g, '_') || 'Unknown';
       const households = [], vehicles = [], members = [], trips = [], transfers = [];
-
       storedData.forEach(item => {
         households.push(item.household);
         vehicles.push(...item.vehicles);
@@ -788,14 +754,54 @@
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(trips), 'Trips');
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(transfers), 'Transfers');
 
-      const fileName = `Survey_${surveyor}_${from}_to_${to}.xlsx`;
+      const fileName = 'Survey_All_Records.xlsx';
       XLSX.writeFile(wb, fileName);
+      alert('Local records downloaded as Excel!');
+    }
 
-      ['+919866897989', '+918074716885', '+919866997390', '+919951020240'].forEach(num => {
-        const msg = encodeURIComponent(`Survey data from ${surveyor} for ${from} to ${to}. File: ${fileName}.`);
-        window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
-      });
-      alert('File downloaded. Attach it in WhatsApp.');
+    async function submitLocal() {
+      try {
+        const data = collectFormData();
+        saveToLocalExcel(data);
+        alert('Survey saved locally as Excel!');
+        document.getElementById('survey-form').reset();
+        resetForm();
+      } catch (e) {
+        alert('Error saving survey locally: ' + e.message);
+      }
+    }
+
+    async function submitGoogleSheets() {
+      try {
+        const data = collectFormData();
+        const result = await submitToGoogleSheets(data);
+        if (result.success) {
+          alert('Survey submitted to Google Sheets!');
+          saveToLocalExcel(data); // Also save locally as backup
+          document.getElementById('survey-form').reset();
+          resetForm();
+        } else {
+          alert('Error submitting survey to Google Sheets. Data saved locally.');
+          saveToLocalExcel(data);
+          document.getElementById('survey-form').reset();
+          resetForm();
+        }
+      } catch (e) {
+        alert('Error submitting survey: ' + e.message);
+        saveToLocalExcel(data);
+      }
+    }
+
+    function resetForm() {
+      const newHouseholdId = `H${Date.now()}`;
+      document.getElementById('household_id').value = newHouseholdId;
+      document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('vehicles').innerHTML = '<div class="entry">' + vehicleTemplate + '</div>';
+      document.getElementById('members').innerHTML = '';
+      memberIdCounter = 0;
+      tripCounters = {};
+      transferCounters = {};
+      addMember();
     }
   </script>
 </body>
