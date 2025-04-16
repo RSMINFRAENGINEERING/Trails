@@ -72,9 +72,6 @@
       color: red;
       font-size: 0.9em;
     }
-    .message {
-      font-size: 0.9em;
-    }
     #hidden-form { display: none; }
     @media (max-width: 600px) {
       input, select, textarea { width: 100%; }
@@ -216,31 +213,22 @@
     <h2>Personal Information</h2>
     <div id="members"></div>
     <button type="button" onclick="addMember()">+ Add Member</button>
-    <button type="button" onclick="submitAll()">Submit Survey</button>
+    <button type="button" onclick="submitLocal()">Submit Locally</button>
+    <button type="button" onclick="submitGoogleSheets()">Submit to Google Sheets</button>
     <button type="button" onclick="downloadLocalExcel()">Download Local Records</button>
   </form>
   <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec" method="POST" target="hidden-iframe">
     <input type="hidden" name="data" id="hidden-data">
   </form>
-  <iframe name="hidden-iframe" style="display: none;"></iframe>
+  <iframe name="hidden-iframe" style="display: none;" onload="handleIframeLoad()"></iframe>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-    // Define critical functions early to avoid undefined errors
-    let isSubmitting = false;
-    function handleIframeLoad() {
-      if (isSubmitting) {
-        isSubmitting = false;
-        showMessage('Successfully submitted to Google Sheets!', 'success');
-        console.log('Google Sheets submission successful');
-      }
-    }
-
-    // Initialize form state
     const householdId = `H${Date.now()}`;
     document.getElementById('household_id').value = householdId;
     document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
     let memberIdCounter = 0, tripCounters = {}, transferCounters = {};
+    let lastSubmissionStatus = null;
 
     if (!localStorage.getItem('surveyData')) localStorage.setItem('surveyData', JSON.stringify([]));
 
@@ -269,7 +257,7 @@
           <option>Petrol</option>
           <option>Diesel</option>
           <option>Electric</option>
-          <option>CNG</option>
+          <option> penso
           <option>None</option>
         </select>
       </label>
@@ -490,31 +478,22 @@
 
     // Functions
     async function getLocation() {
-      if (!navigator.geolocation) {
-        showMessage('Geolocation not supported.', 'error');
-        return;
-      }
-      try {
-        const pos = await new Promise((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
-        );
-        const { latitude, longitude } = pos.coords;
-        document.getElementById('latitude').value = latitude.toFixed(6);
-        document.getElementById('longitude').value = longitude.toFixed(6);
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`, {
-            headers: { 'User-Agent': 'MobilitySurvey/1.0' }
-          });
-          if (!res.ok) throw new Error('Failed to fetch address');
-          const data = await res.json();
-          document.getElementById('address').value = data.display_name || 'Address not found';
-        } catch (e) {
-          showMessage('Error fetching address: ' + e.message, 'error');
-          document.getElementById('address').value = '';
-        }
-      } catch (e) {
-        showMessage('Geolocation error: ' + e.message, 'error');
-      }
+      if (!navigator.geolocation) return alert('Geolocation not supported.');
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          document.getElementById('latitude').value = latitude;
+          document.getElementById('longitude').value = longitude;
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const data = await res.json();
+            document.getElementById('address').value = data.display_name || 'Address not found';
+          } catch (e) {
+            alert('Error fetching address.');
+          }
+        },
+        (e) => alert('Geolocation error: ' + e.message)
+      );
     }
 
     function addEntry(containerId, template) {
@@ -531,26 +510,13 @@
       tripCounters[memberId] = 0;
       transferCounters[memberId] = {};
       const members = document.getElementById('members');
-      if (!members) {
-        console.error('Members container not found');
-        showMessage('Error: Cannot add member. Please reload the page.', 'error');
-        return;
-      }
       const div = document.createElement('div');
-      div.className = 'entry';
-      div.dataset.memberId = memberId;
       div.innerHTML = memberTemplate(memberId);
       members.appendChild(div);
-      console.log(`Added member ${memberId}`);
     }
 
     function addTrip(button) {
       const memberEntry = button.closest('.entry');
-      if (!memberEntry || !memberEntry.dataset.memberId) {
-        console.error('Cannot add trip: Invalid member entry');
-        showMessage('Error: Cannot add trip. Please add a member first.', 'error');
-        return;
-      }
       const memberId = memberEntry.dataset.memberId;
       tripCounters[memberId]++;
       const tripId = `${memberId}-T${tripCounters[memberId]}`;
@@ -559,17 +525,10 @@
       const div = document.createElement('div');
       div.innerHTML = tripTemplate(tripId, memberId);
       trips.appendChild(div);
-      console.log(`Added trip ${tripId} for member ${memberId}`);
     }
 
     function toggleTrips(select) {
-      const memberEntry = select.closest('.entry');
-      if (!memberEntry || !memberEntry.dataset.memberId) {
-        console.error('Cannot toggle trips: Invalid member entry');
-        showMessage('Error: Invalid member data.', 'error');
-        return;
-      }
-      const tripSection = memberEntry.querySelector('.trip-section');
+      const tripSection = select.closest('.entry').querySelector('.trip-section');
       if (select.value === 'yes') {
         tripSection.style.display = 'block';
         if (!tripSection.querySelector('.trip-entries').children.length) {
@@ -578,7 +537,7 @@
       } else if (select.value === 'no') {
         tripSection.style.display = 'none';
         tripSection.querySelector('.trip-entries').innerHTML = '';
-        showMessage('No trips for this member. Add the next member if needed.', 'success');
+        alert('No trips for this member. Add the next member if needed.');
       }
     }
 
@@ -606,141 +565,23 @@
       }
     }
 
-    function validateForm() {
-      console.log('Starting form validation');
-      const form = document.getElementById('survey-form');
-      const requiredInputs = form.querySelectorAll('input[required], select[required]');
-      for (let input of requiredInputs) {
-        if (!input) {
-          console.log('Validation warning: Found null input in requiredInputs');
-          continue;
-        }
-        if (!input.value || input.value === '') {
-          const label = input.closest('label');
-          const fieldName = label ? label.textContent : input.name || 'Unknown field';
-          showMessage(`Please fill required field: ${fieldName}`, 'error');
-          console.log(`Validation failed: Missing value for ${input.name || 'unnamed input'}`);
-          if (input.focus) input.focus();
-          return false;
-        }
+    function handleIframeLoad() {
+      if (lastSubmissionStatus) {
+        lastSubmissionStatus.resolve({ success: true });
       }
-      const members = document.querySelectorAll('#members .entry');
-      if (members.length === 0) {
-        showMessage('Please add at least one household member.', 'error');
-        console.log('Validation failed: No members added');
-        return false;
-      }
-      for (let member of members) {
-        const memberId = member.dataset.memberId;
-        if (!memberId) {
-          showMessage('Invalid member data: Missing member ID.', 'error');
-          console.log('Validation failed: Member entry missing data-member-id');
-          return false;
-        }
-        const hasTripsSelect = member.querySelector(`select[name="has_trips_${memberId}"]`);
-        if (!hasTripsSelect) {
-          showMessage(`Missing "Has Trips" field for member ${memberId}.`, 'error');
-          console.log(`Validation failed: Missing has_trips_${memberId}`);
-          return false;
-        }
-        const hasTrips = hasTripsSelect.value;
-        if (!hasTrips) {
-          showMessage(`Please select whether member ${memberId} has trips.`, 'error');
-          console.log(`Validation failed: has_trips_${memberId} not selected`);
-          hasTripsSelect.focus();
-          return false;
-        }
-        if (hasTrips === 'yes') {
-          const trips = member.querySelectorAll('.trip-entries .entry');
-          if (trips.length === 0) {
-            showMessage(`Please add at least one trip for member ${memberId}.`, 'error');
-            console.log(`Validation failed: No trips for member ${memberId}`);
-            return false;
-          }
-          for (let trip of trips) {
-            const tripId = trip.dataset.tripId;
-            const modeSelect = trip.querySelector(`select[name="mode_of_transport_${memberId}_${tripId}"]`);
-            if (!modeSelect) {
-              showMessage(`Missing transport mode for trip ${tripId}.`, 'error');
-              console.log(`Validation failed: Missing mode_of_transport_${memberId}_${tripId}`);
-              return false;
-            }
-            if (!modeSelect.value) {
-              showMessage(`Please select a transport mode for trip ${tripId}.`, 'error');
-              console.log(`Validation failed: Missing mode for trip ${tripId}`);
-              modeSelect.focus();
-              return false;
-            }
-          }
-        }
-      }
-      const vehicleEntries = document.querySelectorAll('#vehicles .entry');
-      for (let entry of vehicleEntries) {
-        const vehTypeSelect = entry.querySelector('select[name="veh_type[]"]');
-        if (!vehTypeSelect) {
-          showMessage('Missing vehicle type field.', 'error');
-          console.log('Validation failed: Missing vehicle type select');
-          return false;
-        }
-        const vehType = vehTypeSelect.value;
-        if (vehType && vehType !== 'None') {
-          const ownership = entry.querySelector('select[name="ownership_type[]"]')?.value;
-          const fuel = entry.querySelector('select[name="fuel_type[]"]')?.value;
-          const parking = entry.querySelector('select[name="parking_type[]"]')?.value;
-          if (!ownership || !fuel || !parking) {
-            showMessage('Please fill all vehicle fields or select "None" for vehicle type.', 'error');
-            console.log('Validation failed: Incomplete vehicle fields');
-            return false;
-          }
-        }
-      }
-      console.log('Form validation passed');
-      return true;
     }
 
-    async function submitToGoogleSheets(data) {
-      if (isSubmitting) {
-        showMessage('Submission in progress, please wait.', 'error');
-        console.log('Submission blocked: Already in progress');
-        return false;
-      }
-      isSubmitting = true;
-      const hiddenForm = document.getElementById('hidden-form');
-      const hiddenData = document.getElementById('hidden-data');
-      console.log('Preparing Google Sheets submission:', JSON.stringify(data, null, 2));
-      try {
+    function submitToGoogleSheets(data) {
+      return new Promise((resolve) => {
+        const hiddenForm = document.getElementById('hidden-form');
+        const hiddenData = document.getElementById('hidden-data');
         hiddenData.value = JSON.stringify(data);
+        lastSubmissionStatus = { resolve };
         hiddenForm.submit();
-        const submissionTimeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Submission timed out')), 10000)
-        );
-        await Promise.race([new Promise(resolve => setTimeout(resolve, 2000)), submissionTimeout]);
-        return true;
-      } catch (e) {
-        isSubmitting = false;
-        console.error('Error submitting to Google Sheets:', e);
-        showMessage('Failed to submit to Google Sheets: ' + e.message, 'error');
-        return false;
-      }
-    }
-
-    function saveToLocalExcel(data) {
-      try {
-        const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
-        storedData.push(data);
-        localStorage.setItem('surveyData', JSON.stringify(storedData));
-        showMessage('Successfully saved to local storage!', 'success');
-        console.log('Data saved to local storage');
-        return true;
-      } catch (e) {
-        console.error('Error saving to local storage:', e);
-        showMessage('Failed to save to local storage: ' + e.message, 'error');
-        return false;
-      }
+      });
     }
 
     function collectFormData() {
-      console.log('Collecting form data');
       const form = document.getElementById('survey-form');
       const formData = new FormData(form);
       const timestamp = new Date().toISOString();
@@ -754,29 +595,29 @@
           ward_no: formData.get('ward_no'),
           taz_no: formData.get('taz_no'),
           head_name: formData.get('head_name'),
-          door_no: formData.get('door_no') || '',
+          door_no: formData.get('door_no'),
           address: formData.get('address'),
-          latitude: formData.get('latitude') || '',
-          longitude: formData.get('longitude') || '',
-          mobile: formData.get('mobile') || '',
+          latitude: formData.get('latitude'),
+          longitude: formData.get('longitude'),
+          mobile: formData.get('mobile'),
           household_type: formData.get('household_type'),
           house_ownership: formData.get('house_ownership'),
           num_rooms: formData.get('num_rooms'),
           num_earners: formData.get('num_earners'),
           income: formData.get('income'),
-          exp_transport: formData.get('exp_transport') || '',
-          exp_housing: formData.get('exp_housing') || '',
-          exp_education: formData.get('exp_education') || '',
-          exp_food: formData.get('exp_food') || '',
-          exp_health: formData.get('exp_health') || '',
-          exp_others: formData.get('exp_others') || '',
+          exp_transport: formData.get('exp_transport'),
+          exp_housing: formData.get('exp_housing'),
+          exp_education: formData.get('exp_education'),
+          exp_food: formData.get('exp_food'),
+          exp_health: formData.get('exp_health'),
+          exp_others: formData.get('exp_others'),
           nearest_pt_station: formData.get('nearest_pt_station'),
-          pt_distance: formData.get('pt_distance') || '',
-          walk_time: formData.get('walk_time') || '',
-          waiting_time: formData.get('waiting_time') || '',
-          weekly_usage: formData.get('weekly_usage') || '',
+          pt_distance: formData.get('pt_distance'),
+          walk_time: formData.get('walk_time'),
+          waiting_time: formData.get('waiting_time'),
+          weekly_usage: formData.get('weekly_usage'),
           pt_feedback: formData.get('pt_feedback'),
-          pt_suggestions: formData.get('pt_suggestions') || ''
+          pt_suggestions: formData.get('pt_suggestions')
         },
         vehicles: [],
         members: [],
@@ -785,24 +626,16 @@
       };
 
       // Vehicles
-      const vehicleEntries = document.querySelectorAll('#vehicles .entry');
-      const vehTypes = formData.getAll('veh_type[]');
-      const ownershipTypes = formData.getAll('ownership_type[]');
-      const fuelTypes = formData.getAll('fuel_type[]');
-      const parkingTypes = formData.getAll('parking_type[]');
-      vehicleEntries.forEach((entry, i) => {
-        const vehType = vehTypes[i];
-        const ownership = ownershipTypes[i];
-        const fuel = fuelTypes[i];
-        const parking = parkingTypes[i];
-        if (vehType && vehType !== 'None' && ownership && fuel && parking) {
+      document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
+        const vehType = entry.querySelector('select[name="veh_type[]"]')?.value;
+        if (vehType) {
           data.vehicles.push({
             household_id: data.household.household_id,
             vehicle_number: i + 1,
             veh_type: vehType,
-            ownership_type: ownership,
-            fuel_type: fuel,
-            parking_type: parking,
+            ownership_type: entry.querySelector('select[name="ownership_type[]"]')?.value || '',
+            fuel_type: entry.querySelector('select[name="fuel_type[]"]')?.value || '',
+            parking_type: entry.querySelector('select[name="parking_type[]"]')?.value || '',
             surveyor_name: data.household.surveyor_name,
             timestamp: timestamp
           });
@@ -812,10 +645,6 @@
       // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
         const memberId = member.dataset.memberId;
-        if (!memberId) {
-          console.warn('Skipping member with missing memberId');
-          return;
-        }
         const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`)?.value;
 
         // Add Member
@@ -844,6 +673,10 @@
         // Add Trips and Transfers
         if (hasTrips === 'yes') {
           const tripEntries = member.querySelectorAll('.trip-entries .entry');
+          if (tripEntries.length === 0) {
+            alert('Please add at least one trip for this member.');
+            throw new Error('No trips added');
+          }
           tripEntries.forEach((trip) => {
             const tripId = trip.dataset.tripId;
             const tripData = {
@@ -889,16 +722,19 @@
           });
         }
       });
-      console.log('Form data collected:', data);
       return data;
     }
 
+    function saveToLocalExcel(data) {
+      const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
+      storedData.push(data);
+      localStorage.setItem('surveyData', JSON.stringify(storedData));
+    }
+
     function downloadLocalExcel() {
-      console.log('Downloading local records');
       const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
       if (!storedData.length) {
-        showMessage('No local records found to download.', 'error');
-        console.log('No local records to download');
+        alert('No local records found to download.');
         return;
       }
 
@@ -920,56 +756,48 @@
 
       const fileName = 'Survey_All_Records.xlsx';
       XLSX.writeFile(wb, fileName);
-      showMessage('Local records downloaded as Excel!', 'success');
-      console.log('Local records downloaded');
+      alert('Local records downloaded as Excel!');
     }
 
-    async function submitAll() {
-      console.log('Submit button clicked');
-      if (!validateForm()) {
-        isSubmitting = false;
-        console.log('Submission aborted due to validation failure');
-        return;
-      }
+    async function submitLocal() {
       try {
         const data = collectFormData();
-        console.log('Form data collected for submission:', data);
-        const localSuccess = saveToLocalExcel(data);
-        const googleSuccess = await submitToGoogleSheets(data);
-        if (localSuccess && googleSuccess) {
-          showMessage('Survey submitted to Google Sheets and saved locally!', 'success');
-          console.log('Submission successful: Google Sheets and local storage');
-          document.getElementById('survey-form').reset();
-          resetForm();
-        } else if (localSuccess) {
-          showMessage('Saved locally but failed to submit to Google Sheets. Try again later.', 'error');
-          console.log('Google Sheets submission failed, saved locally');
-        } else if (googleSuccess) {
-          showMessage('Submitted to Google Sheets but failed to save locally.', 'error');
-          console.log('Local storage save failed, Google Sheets submitted');
+        saveToLocalExcel(data);
+        alert('Survey saved locally as Excel!');
+        document.getElementById('survey-form').reset();
+        resetForm();
+      } catch (e) {
+        alert('Error saving survey locally: ' + e.message);
+      }
+    }
+
+    async function submitGoogleSheets() {
+      try {
+        const data = collectFormData();
+        const result = await submitToGoogleSheets(data);
+        if (result.success) {
+          alert('Survey submitted to Google Sheets!');
+          saveToLocalExcel(data); // Also save locally as backup
           document.getElementById('survey-form').reset();
           resetForm();
         } else {
-          showMessage('Failed to submit to Google Sheets and save locally. Data saved locally as fallback.', 'error');
-          console.log('Both submissions failed, attempting fallback local save');
-          saveToLocalExcel(data); // Fallback save
+          alert('Error submitting survey to Google Sheets. Data saved locally.');
+          saveToLocalExcel(data);
+          document.getElementById('survey-form').reset();
+          resetForm();
         }
       } catch (e) {
-        isSubmitting = false;
-        console.error('Submission error:', e);
-        showMessage('Error during submission: ' + e.message, 'error');
-        saveToLocalExcel(collectFormData()); // Fallback save
+        alert('Error submitting survey: ' + e.message);
+        saveToLocalExcel(data);
+        document.getElementById('survey-form').reset();
+        resetForm();
       }
     }
 
     function resetForm() {
-      console.log('Resetting form');
       const newHouseholdId = `H${Date.now()}`;
       document.getElementById('household_id').value = newHouseholdId;
       document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('latitude').value = '';
-      document.getElementById('longitude').value = '';
-      document.getElementById('address').value = '';
       document.getElementById('vehicles').innerHTML = '<div class="entry">' + vehicleTemplate + '</div>';
       document.getElementById('members').innerHTML = '';
       memberIdCounter = 0;
@@ -977,35 +805,6 @@
       transferCounters = {};
       addMember();
     }
-
-    function showMessage(message, type) {
-      const errorDiv = document.createElement('div');
-      errorDiv.className = `message ${type}`;
-      errorDiv.textContent = message;
-      errorDiv.style.cssText = `
-        position: fixed; top: 20px; right: 20px; padding: 10px 20px;
-        background: ${type === 'error' ? '#f8d7da' : '#d4edda'};
-        color: ${type === 'error' ? '#721c24' : '#155724'};
-        border-radius: 4px; z-index: 1000;
-      `;
-      document.body.appendChild(errorDiv);
-      setTimeout(() => errorDiv.remove(), 5000);
-      console.log(`Message displayed: ${message} (${type})`);
-    }
-
-    // Attach iframe onload handler safely
-    document.addEventListener('DOMContentLoaded', () => {
-      const iframe = document.querySelector('iframe[name="hidden-iframe"]');
-      if (iframe) {
-        iframe.onload = () => {
-          if (typeof handleIframeLoad === 'function') {
-            handleIframeLoad();
-          } else {
-            console.warn('handleIframeLoad not defined during iframe onload');
-          }
-        };
-      }
-    });
   </script>
 </body>
 </html>
