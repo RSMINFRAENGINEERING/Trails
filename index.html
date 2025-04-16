@@ -222,15 +222,25 @@
   <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec" method="POST" target="hidden-iframe">
     <input type="hidden" name="data" id="hidden-data">
   </form>
-  <iframe name="hidden-iframe" style="display: none;" onload="handleIframeLoad()"></iframe>
+  <iframe name="hidden-iframe" style="display: none;"></iframe>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
+    // Define critical functions early to avoid undefined errors
+    let isSubmitting = false;
+    function handleIframeLoad() {
+      if (isSubmitting) {
+        isSubmitting = false;
+        showMessage('Successfully submitted to Google Sheets!', 'success');
+        console.log('Google Sheets submission successful');
+      }
+    }
+
+    // Initialize form state
     const householdId = `H${Date.now()}`;
     document.getElementById('household_id').value = householdId;
     document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
     let memberIdCounter = 0, tripCounters = {}, transferCounters = {};
-    let isSubmitting = false;
 
     if (!localStorage.getItem('surveyData')) localStorage.setItem('surveyData', JSON.stringify([]));
 
@@ -521,13 +531,26 @@
       tripCounters[memberId] = 0;
       transferCounters[memberId] = {};
       const members = document.getElementById('members');
+      if (!members) {
+        console.error('Members container not found');
+        showMessage('Error: Cannot add member. Please reload the page.', 'error');
+        return;
+      }
       const div = document.createElement('div');
+      div.className = 'entry';
+      div.dataset.memberId = memberId;
       div.innerHTML = memberTemplate(memberId);
       members.appendChild(div);
+      console.log(`Added member ${memberId}`);
     }
 
     function addTrip(button) {
       const memberEntry = button.closest('.entry');
+      if (!memberEntry || !memberEntry.dataset.memberId) {
+        console.error('Cannot add trip: Invalid member entry');
+        showMessage('Error: Cannot add trip. Please add a member first.', 'error');
+        return;
+      }
       const memberId = memberEntry.dataset.memberId;
       tripCounters[memberId]++;
       const tripId = `${memberId}-T${tripCounters[memberId]}`;
@@ -536,10 +559,17 @@
       const div = document.createElement('div');
       div.innerHTML = tripTemplate(tripId, memberId);
       trips.appendChild(div);
+      console.log(`Added trip ${tripId} for member ${memberId}`);
     }
 
     function toggleTrips(select) {
-      const tripSection = select.closest('.entry').querySelector('.trip-section');
+      const memberEntry = select.closest('.entry');
+      if (!memberEntry || !memberEntry.dataset.memberId) {
+        console.error('Cannot toggle trips: Invalid member entry');
+        showMessage('Error: Invalid member data.', 'error');
+        return;
+      }
+      const tripSection = memberEntry.querySelector('.trip-section');
       if (select.value === 'yes') {
         tripSection.style.display = 'block';
         if (!tripSection.querySelector('.trip-entries').children.length) {
@@ -602,6 +632,11 @@
       }
       for (let member of members) {
         const memberId = member.dataset.memberId;
+        if (!memberId) {
+          showMessage('Invalid member data: Missing member ID.', 'error');
+          console.log('Validation failed: Member entry missing data-member-id');
+          return false;
+        }
         const hasTripsSelect = member.querySelector(`select[name="has_trips_${memberId}"]`);
         if (!hasTripsSelect) {
           showMessage(`Missing "Has Trips" field for member ${memberId}.`, 'error');
@@ -661,14 +696,6 @@
       }
       console.log('Form validation passed');
       return true;
-    }
-
-    function handleIframeLoad() {
-      if (isSubmitting) {
-        isSubmitting = false;
-        showMessage('Successfully submitted to Google Sheets!', 'success');
-        console.log('Google Sheets submission successful');
-      }
     }
 
     async function submitToGoogleSheets(data) {
@@ -785,6 +812,10 @@
       // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
         const memberId = member.dataset.memberId;
+        if (!memberId) {
+          console.warn('Skipping member with missing memberId');
+          return;
+        }
         const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`)?.value;
 
         // Add Member
@@ -961,6 +992,20 @@
       setTimeout(() => errorDiv.remove(), 5000);
       console.log(`Message displayed: ${message} (${type})`);
     }
+
+    // Attach iframe onload handler safely
+    document.addEventListener('DOMContentLoaded', () => {
+      const iframe = document.querySelector('iframe[name="hidden-iframe"]');
+      if (iframe) {
+        iframe.onload = () => {
+          if (typeof handleIframeLoad === 'function') {
+            handleIframeLoad();
+          } else {
+            console.warn('handleIframeLoad not defined during iframe onload');
+          }
+        };
+      }
+    });
   </script>
 </body>
 </html>
