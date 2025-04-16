@@ -577,45 +577,89 @@
     }
 
     function validateForm() {
+      console.log('Starting form validation');
       const form = document.getElementById('survey-form');
       const requiredInputs = form.querySelectorAll('input[required], select[required]');
       for (let input of requiredInputs) {
+        if (!input) {
+          console.log('Validation warning: Found null input in requiredInputs');
+          continue;
+        }
         if (!input.value || input.value === '') {
-          showMessage(`Please fill required field: ${input.closest('label').textContent}`, 'error');
-          input.focus();
+          const label = input.closest('label');
+          const fieldName = label ? label.textContent : input.name || 'Unknown field';
+          showMessage(`Please fill required field: ${fieldName}`, 'error');
+          console.log(`Validation failed: Missing value for ${input.name || 'unnamed input'}`);
+          if (input.focus) input.focus();
           return false;
         }
       }
       const members = document.querySelectorAll('#members .entry');
       if (members.length === 0) {
         showMessage('Please add at least one household member.', 'error');
+        console.log('Validation failed: No members added');
         return false;
       }
       for (let member of members) {
         const memberId = member.dataset.memberId;
-        const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`).value;
+        const hasTripsSelect = member.querySelector(`select[name="has_trips_${memberId}"]`);
+        if (!hasTripsSelect) {
+          showMessage(`Missing "Has Trips" field for member ${memberId}.`, 'error');
+          console.log(`Validation failed: Missing has_trips_${memberId}`);
+          return false;
+        }
+        const hasTrips = hasTripsSelect.value;
+        if (!hasTrips) {
+          showMessage(`Please select whether member ${memberId} has trips.`, 'error');
+          console.log(`Validation failed: has_trips_${memberId} not selected`);
+          hasTripsSelect.focus();
+          return false;
+        }
         if (hasTrips === 'yes') {
           const trips = member.querySelectorAll('.trip-entries .entry');
           if (trips.length === 0) {
             showMessage(`Please add at least one trip for member ${memberId}.`, 'error');
+            console.log(`Validation failed: No trips for member ${memberId}`);
             return false;
+          }
+          for (let trip of trips) {
+            const tripId = trip.dataset.tripId;
+            const modeSelect = trip.querySelector(`select[name="mode_of_transport_${memberId}_${tripId}"]`);
+            if (!modeSelect) {
+              showMessage(`Missing transport mode for trip ${tripId}.`, 'error');
+              console.log(`Validation failed: Missing mode_of_transport_${memberId}_${tripId}`);
+              return false;
+            }
+            if (!modeSelect.value) {
+              showMessage(`Please select a transport mode for trip ${tripId}.`, 'error');
+              console.log(`Validation failed: Missing mode for trip ${tripId}`);
+              modeSelect.focus();
+              return false;
+            }
           }
         }
       }
-      // Validate vehicle entries
       const vehicleEntries = document.querySelectorAll('#vehicles .entry');
       for (let entry of vehicleEntries) {
-        const vehType = entry.querySelector('select[name="veh_type[]"]').value;
+        const vehTypeSelect = entry.querySelector('select[name="veh_type[]"]');
+        if (!vehTypeSelect) {
+          showMessage('Missing vehicle type field.', 'error');
+          console.log('Validation failed: Missing vehicle type select');
+          return false;
+        }
+        const vehType = vehTypeSelect.value;
         if (vehType && vehType !== 'None') {
-          const ownership = entry.querySelector('select[name="ownership_type[]"]').value;
-          const fuel = entry.querySelector('select[name="fuel_type[]"]').value;
-          const parking = entry.querySelector('select[name="parking_type[]"]').value;
+          const ownership = entry.querySelector('select[name="ownership_type[]"]')?.value;
+          const fuel = entry.querySelector('select[name="fuel_type[]"]')?.value;
+          const parking = entry.querySelector('select[name="parking_type[]"]')?.value;
           if (!ownership || !fuel || !parking) {
             showMessage('Please fill all vehicle fields or select "None" for vehicle type.', 'error');
+            console.log('Validation failed: Incomplete vehicle fields');
             return false;
           }
         }
       }
+      console.log('Form validation passed');
       return true;
     }
 
@@ -623,24 +667,31 @@
       if (isSubmitting) {
         isSubmitting = false;
         showMessage('Successfully submitted to Google Sheets!', 'success');
+        console.log('Google Sheets submission successful');
       }
     }
 
     async function submitToGoogleSheets(data) {
       if (isSubmitting) {
         showMessage('Submission in progress, please wait.', 'error');
+        console.log('Submission blocked: Already in progress');
         return false;
       }
       isSubmitting = true;
       const hiddenForm = document.getElementById('hidden-form');
       const hiddenData = document.getElementById('hidden-data');
+      console.log('Preparing Google Sheets submission:', JSON.stringify(data, null, 2));
       try {
         hiddenData.value = JSON.stringify(data);
         hiddenForm.submit();
+        const submissionTimeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Submission timed out')), 10000)
+        );
+        await Promise.race([new Promise(resolve => setTimeout(resolve, 2000)), submissionTimeout]);
         return true;
       } catch (e) {
         isSubmitting = false;
-        console.error('Error preparing Google Sheets submission:', e);
+        console.error('Error submitting to Google Sheets:', e);
         showMessage('Failed to submit to Google Sheets: ' + e.message, 'error');
         return false;
       }
@@ -652,6 +703,7 @@
         storedData.push(data);
         localStorage.setItem('surveyData', JSON.stringify(storedData));
         showMessage('Successfully saved to local storage!', 'success');
+        console.log('Data saved to local storage');
         return true;
       } catch (e) {
         console.error('Error saving to local storage:', e);
@@ -661,6 +713,7 @@
     }
 
     function collectFormData() {
+      console.log('Collecting form data');
       const form = document.getElementById('survey-form');
       const formData = new FormData(form);
       const timestamp = new Date().toISOString();
@@ -805,13 +858,16 @@
           });
         }
       });
+      console.log('Form data collected:', data);
       return data;
     }
 
     function downloadLocalExcel() {
+      console.log('Downloading local records');
       const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
       if (!storedData.length) {
         showMessage('No local records found to download.', 'error');
+        console.log('No local records to download');
         return;
       }
 
@@ -834,39 +890,49 @@
       const fileName = 'Survey_All_Records.xlsx';
       XLSX.writeFile(wb, fileName);
       showMessage('Local records downloaded as Excel!', 'success');
+      console.log('Local records downloaded');
     }
 
     async function submitAll() {
+      console.log('Submit button clicked');
       if (!validateForm()) {
         isSubmitting = false;
+        console.log('Submission aborted due to validation failure');
         return;
       }
       try {
         const data = collectFormData();
+        console.log('Form data collected for submission:', data);
         const localSuccess = saveToLocalExcel(data);
         const googleSuccess = await submitToGoogleSheets(data);
         if (localSuccess && googleSuccess) {
           showMessage('Survey submitted to Google Sheets and saved locally!', 'success');
+          console.log('Submission successful: Google Sheets and local storage');
           document.getElementById('survey-form').reset();
           resetForm();
         } else if (localSuccess) {
           showMessage('Saved locally but failed to submit to Google Sheets. Try again later.', 'error');
+          console.log('Google Sheets submission failed, saved locally');
         } else if (googleSuccess) {
           showMessage('Submitted to Google Sheets but failed to save locally.', 'error');
+          console.log('Local storage save failed, Google Sheets submitted');
           document.getElementById('survey-form').reset();
           resetForm();
         } else {
           showMessage('Failed to submit to Google Sheets and save locally. Data saved locally as fallback.', 'error');
+          console.log('Both submissions failed, attempting fallback local save');
           saveToLocalExcel(data); // Fallback save
         }
       } catch (e) {
         isSubmitting = false;
+        console.error('Submission error:', e);
         showMessage('Error during submission: ' + e.message, 'error');
         saveToLocalExcel(collectFormData()); // Fallback save
       }
     }
 
     function resetForm() {
+      console.log('Resetting form');
       const newHouseholdId = `H${Date.now()}`;
       document.getElementById('household_id').value = newHouseholdId;
       document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
@@ -893,6 +959,7 @@
       `;
       document.body.appendChild(errorDiv);
       setTimeout(() => errorDiv.remove(), 5000);
+      console.log(`Message displayed: ${message} (${type})`);
     }
   </script>
 </body>
