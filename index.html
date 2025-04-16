@@ -602,6 +602,20 @@
           }
         }
       }
+      // Validate vehicle entries
+      const vehicleEntries = document.querySelectorAll('#vehicles .entry');
+      for (let entry of vehicleEntries) {
+        const vehType = entry.querySelector('select[name="veh_type[]"]').value;
+        if (vehType && vehType !== 'None') {
+          const ownership = entry.querySelector('select[name="ownership_type[]"]').value;
+          const fuel = entry.querySelector('select[name="fuel_type[]"]').value;
+          const parking = entry.querySelector('select[name="parking_type[]"]').value;
+          if (!ownership || !fuel || !parking) {
+            showMessage('Please fill all vehicle fields or select "None" for vehicle type.', 'error');
+            return false;
+          }
+        }
+      }
       return true;
     }
 
@@ -620,7 +634,6 @@
       isSubmitting = true;
       const hiddenForm = document.getElementById('hidden-form');
       const hiddenData = document.getElementById('hidden-data');
-      console.log('Sending to Google Sheets:', JSON.stringify(data, null, 2));
       try {
         hiddenData.value = JSON.stringify(data);
         hiddenForm.submit();
@@ -693,11 +706,15 @@
 
       // Vehicles
       const vehicleEntries = document.querySelectorAll('#vehicles .entry');
+      const vehTypes = formData.getAll('veh_type[]');
+      const ownershipTypes = formData.getAll('ownership_type[]');
+      const fuelTypes = formData.getAll('fuel_type[]');
+      const parkingTypes = formData.getAll('parking_type[]');
       vehicleEntries.forEach((entry, i) => {
-        const vehType = entry.querySelector('select[name="veh_type[]"]')?.value;
-        const ownership = entry.querySelector('select[name="ownership_type[]"]')?.value;
-        const fuel = entry.querySelector('select[name="fuel_type[]"]')?.value;
-        const parking = entry.querySelector('select[name="parking_type[]"]')?.value;
+        const vehType = vehTypes[i];
+        const ownership = ownershipTypes[i];
+        const fuel = fuelTypes[i];
+        const parking = parkingTypes[i];
         if (vehType && vehType !== 'None' && ownership && fuel && parking) {
           data.vehicles.push({
             household_id: data.household.household_id,
@@ -820,25 +837,32 @@
     }
 
     async function submitAll() {
-      if (!validateForm()) return;
+      if (!validateForm()) {
+        isSubmitting = false;
+        return;
+      }
       try {
         const data = collectFormData();
         const localSuccess = saveToLocalExcel(data);
         const googleSuccess = await submitToGoogleSheets(data);
         if (localSuccess && googleSuccess) {
           showMessage('Survey submitted to Google Sheets and saved locally!', 'success');
+          document.getElementById('survey-form').reset();
+          resetForm();
         } else if (localSuccess) {
-          showMessage('Saved locally but failed to submit to Google Sheets.', 'error');
+          showMessage('Saved locally but failed to submit to Google Sheets. Try again later.', 'error');
         } else if (googleSuccess) {
           showMessage('Submitted to Google Sheets but failed to save locally.', 'error');
+          document.getElementById('survey-form').reset();
+          resetForm();
         } else {
-          showMessage('Failed to submit to Google Sheets and save locally.', 'error');
+          showMessage('Failed to submit to Google Sheets and save locally. Data saved locally as fallback.', 'error');
+          saveToLocalExcel(data); // Fallback save
         }
-        document.getElementById('survey-form').reset();
-        resetForm();
       } catch (e) {
         isSubmitting = false;
         showMessage('Error during submission: ' + e.message, 'error');
+        saveToLocalExcel(collectFormData()); // Fallback save
       }
     }
 
