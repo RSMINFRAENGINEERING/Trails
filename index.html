@@ -234,40 +234,40 @@
 
     // Templates
     const vehicleTemplate = `
-      <label>Vehicle Type:
-        <select name="veh_type[]" required>
-          <option value="" selected>Please Select</option>
-          <option>Car</option>
-          <option>Two-Wheeler</option>
-          <option>Bicycle</option>
-          <option>Auto-Rickshaw</option>
-          <option>None</option>
-        </select>
-      </label>
-      <label>Ownership:
-        <select name="ownership_type[]" required>
-          <option value="" selected>Please Select</option>
-          <option>Owned</option>
-          <option>Hired</option>
-        </select>
-      </label>
-      <label>Fuel Type:
-        <select name="fuel_type[]" required>
-          <option value="" selected>Please Select</option>
-          <option>Petrol</option>
-          <option>Diesel</option>
-          <option>Electric</option>
-          <option> penso
-          <option>None</option>
-        </select>
-      </label>
-      <label>Parking:
-        <select name="parking_type[]" required>
-          <option value="" selected>Please Select</option>
-          <option>Private Space</option>
-          <option>On Street</option>
-        </select>
-      </label>`;
+  <label>Vehicle Type:
+    <select name="veh_type[]" onchange="toggleVehicleFields(this)" required>
+      <option value="" selected>Please Select</option>
+      <option>Car</option>
+      <option>Two-Wheeler</option>
+      <option>Bicycle</option>
+      <option>Auto-Rickshaw</option>
+      <option value="None">None</option>
+    </select>
+  </label>
+  <label>Ownership:
+    <select name="ownership_type[]" class="vehicle-field">
+      <option value="" selected>Please Select</option>
+      <option>Owned</option>
+      <option>Hired</option>
+    </select>
+  </label>
+  <label>Fuel Type:
+    <select name="fuel_type[]" class="vehicle-field">
+      <option value="" selected>Please Select</option>
+      <option>Petrol</option>
+      <option>Diesel</option>
+      <option>Electric</option>
+      <option>CNG</option>
+      <option>None</option>
+    </select>
+  </label>
+  <label>Parking:
+    <select name="parking_type[]" class="vehicle-field">
+      <option value="" selected>Please Select</option>
+      <option>Private Space</option>
+      <option>On Street</option>
+    </select>
+  </label>`;
 
     const memberTemplate = (memberId) => `
       <div class="entry" data-member-id="${memberId}">
@@ -580,7 +580,15 @@
         hiddenForm.submit();
       });
     }
-
+    function toggleVehicleFields(select) {
+  const entry = select.closest('.entry');
+  const fields = entry.querySelectorAll('.vehicle-field');
+  const isNone = select.value === 'None';
+  fields.forEach(field => {
+    field.disabled = isNone;
+    if (isNone) field.value = '';
+  });
+}
     function collectFormData() {
       const form = document.getElementById('survey-form');
       const formData = new FormData(form);
@@ -627,20 +635,21 @@
 
       // Vehicles
       document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
-        const vehType = entry.querySelector('select[name="veh_type[]"]')?.value;
-        if (vehType) {
-          data.vehicles.push({
-            household_id: data.household.household_id,
-            vehicle_number: i + 1,
-            veh_type: vehType,
-            ownership_type: entry.querySelector('select[name="ownership_type[]"]')?.value || '',
-            fuel_type: entry.querySelector('select[name="fuel_type[]"]')?.value || '',
-            parking_type: entry.querySelector('select[name="parking_type[]"]')?.value || '',
-            surveyor_name: data.household.surveyor_name,
-            timestamp: timestamp
-          });
-        }
-      });
+  const vehType = entry.querySelector('select[name="veh_type[]"]')?.value || '';
+  // Include all entries, even if vehType is "None" or empty
+  data.vehicles.push({
+    household_id: data.household.household_id,
+    vehicle_number: i + 1,
+    veh_type: vehType,
+    ownership_type: vehType === 'None' ? '' : entry.querySelector('select[name="ownership_type[]"]')?.value || '',
+    fuel_type: vehType === 'None' ? '' : entry.querySelector('select[name="fuel_type[]"]')?.value || '',
+    parking_type: vehType === 'None' ? '' : entry.querySelector('select[name="parking_type[]"]')?.value || '',
+    surveyor_name: data.household.surveyor_name,
+    timestamp: timestamp
+  });
+  // Log for debugging
+  console.log(`Vehicle ${i + 1}:`, { veh_type: vehType, ownership_type: data.vehicles[i].ownership_type, fuel_type: data.vehicles[i].fuel_type, parking_type: data.vehicles[i].parking_type });
+});
 
       // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
