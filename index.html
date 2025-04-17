@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Household Survey Form</title>
+  <title>Comprehensive Mobility Plan Survey - Visakhapatnam</title>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <style>
     body {
@@ -72,20 +72,25 @@
       color: red;
       font-size: 0.9em;
       display: none;
-      margin-top: 5px;
     }
-    .form-error {
-      color: red;
-      font-size: 1em;
-      font-weight: bold;
-      text-align: center;
+    .other-specify {
       display: none;
-      margin-bottom: 10px;
+      margin-left: 20px;
+    }
+    .success-message, .failure-message {
+      display: none;
+      margin-top: 10px;
       padding: 10px;
-      background-color: #ffe6e6;
       border-radius: 4px;
     }
-    #hidden-form { display: none; }
+    .success-message {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .failure-message {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
     @media (max-width: 600px) {
       input, select, textarea { width: 100%; }
       h1 { font-size: 1.5em; }
@@ -94,30 +99,31 @@
 </head>
 <body>
   <h1>Comprehensive Mobility Plan Survey - Visakhapatnam</h1>
-  <div id="form-error" class="form-error">Unable to submit form. Please select a vehicle type or 'None' for all vehicle entries.</div>
-  <form id="survey-form" novalidate>
+  <form id="survey-form">
     <h2>Household Information</h2>
-    <label>Surveyor Name: <input type="text" name="surveyor_name" required></label>
-    <label>Surveyor HHID: <input type="text" name="surveyor_hhid" required></label>
-    <label>Household ID: <input type="text" name="household_id" id="household_id" readonly></label>
-    <label>Submission Date: <input type="date" name="submission_date" id="submission_date" required></label>
-    <label>Ward No.: <input type="text" name="ward_no" required></label>
-    <label>TAZ No.: <input type="text" name="taz_no" required></label>
-    <label>Head of Household: <input type="text" name="head_name" required></label>
-    <label>Door No.: <input type="text" name="door_no"></label>
-    <label>Address: <input type="text" id="address" name="address" required>
+    <label>Surveyor Name: <input type="text" name="surveyor_name" required><span class="error">This field is required</span></label>
+    <label>Surveyor HHID: <input type="text" name="surveyor_hhid" required><span class="error">This field is required</span></label>
+    <label>Household ID: <input type="text" name="household_id" id="household_id" readonly required><span class="error">This field is required</span></label>
+    <label>Submission Date: <input type="date" name="submission_date" id="submission_date" required><span class="error">This field is required</span></label>
+    <label>Ward No.: <input type="text" name="ward_no" required><span class="error">This field is required</span></label>
+    <label>TAZ No.: <input type="text" name="taz_no" required><span class="error">This field is required</span></label>
+    <label>Head of Household: <input type="text" name="head_name" required><span class="error">This field is required</span></label>
+    <label>Door No.: <input type="text" name="door_no" required><span class="error">This field is required</span></label>
+    <label>Address: <input type="text" id="address" name="address" required><span class="error">This field is required</span>
       <button type="button" onclick="getLocation()">Get Location</button></label>
-    <label>Latitude: <input type="text" id="latitude" name="latitude" readonly></label>
-    <label>Longitude: <input type="text" id="longitude" name="longitude" readonly></label>
+    <label>Latitude: <input type="text" id="latitude" name="latitude" readonly required><span class="error">This field is required</span></label>
+    <label>Longitude: <input type="text" id="longitude" name="longitude" readonly required><span class="error">This field is required</span></label>
     <label>Mobile No.: <input type="tel" name="mobile"></label>
     <label>Household Type:
-      <select name="household_type" required>
+      <select name="household_type" onchange="toggleOtherField(this, 'other_household_type')" required>
         <option value="" selected>Please Select</option>
         <option>Apartment</option>
         <option>Independent House</option>
         <option>Service/Shared</option>
         <option>Informal Housing</option>
-      </select>
+        <option>Other</option>
+      </select><span class="error">This field is required</span>
+      <input type="text" name="other_household_type" class="other-specify" placeholder="Please specify">
     </label>
     <label>Ownership:
       <select name="house_ownership" required>
@@ -125,7 +131,7 @@
         <option>Owned</option>
         <option>Rented</option>
         <option>Employer Provided</option>
-      </select>
+      </select><span class="error">This field is required</span>
     </label>
     <label>No. of Rooms:
       <select name="num_rooms" required>
@@ -138,9 +144,9 @@
         <option>4BHK</option>
         <option>5BHK</option>
         <option>>5BHK</option>
-      </select>
+      </select><span class="error">This field is required</span>
     </label>
-    <label>No. of Earners: <input type="number" name="num_earners" min="0" required></label>
+    <label>No. of Earners: <input type="number" name="num_earners" min="0" required><span class="error">This field is required</span></label>
     <label>Monthly Income (Rs.):
       <select name="income" required>
         <option value="" selected>Please Select</option>
@@ -152,56 +158,49 @@
         <option value="75001-100000">75,001 - 1,00,000</option>
         <option value="100001-200000">1,00,001 - 2,00,000</option>
         <option value=">200000">Above 2,00,000</option>
-      </select>
+      </select><span class="error">This field is required</span>
     </label>
 
-    <label>Vehicles Owned:</label>
-    <div id="vehicles" class="entry">
-      <label>Vehicle Type:
-        <select name="veh_type[]" onchange="toggleVehicleFields(this)" required>
-          <option value="" selected>Please Select</option>
-          <option>Car</option>
-          <option>Two-Wheeler</option>
-          <option>Bicycle</option>
-          <option>Auto-Rickshaw</option>
-          <option value="None">None</option>
-        </select>
-        <span class="error" id="veh_type_error">Please select a vehicle type or 'None'.</span>
-      </label>
-      <label>Ownership:
-        <select name="ownership_type[]" class="vehicle-field">
-          <option value="" selected>Please Select</option>
-          <option>Owned</option>
-          <option>Hired</option>
-        </select>
-      </label>
-      <label>Fuel Type:
-        <select name="fuel_type[]" class="vehicle-field">
-          <option value="" selected>Please Select</option>
-          <option>Petrol</option>
-          <option>Diesel</option>
-          <option>Electric</option>
-          <option>CNG</option>
-          <option>None</option>
-        </select>
-      </label>
-      <label>Parking:
-        <select name="parking_type[]" class="vehicle-field">
-          <option value="" selected>Please Select</option>
-          <option>Private Space</option>
-          <option>On Street</option>
-        </select>
-      </label>
+    <label>Vehicle Information</label>
+    <label>Has Vehicles?:
+      <select name="has_vehicles" id="has_vehicles" onchange="toggleVehicleSection(this)" required>
+        <option value="" selected>Please Select</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select><span class="error">This field is required</span>
+    </label>
+    <div id="vehicle-section" style="display: none;">
+      <div id="vehicles"></div>
+      <button type="button" id="add-vehicle" onclick="addVehicle()" disabled>+ Add Vehicle</button>
     </div>
-    <button type="button" onclick="addEntry('vehicles', vehicleTemplate)">+ Add Vehicle</button>
+
+    <label>Mobility Habits</label>
+    <label>Daily Commute Distance (km):
+      <input type="number" step="0.1" name="commute_distance" min="0" required><span class="error">This field is required</span>
+    </label>
+    <label>Preferred Transport Mode:
+      <select name="preferred_transport" required>
+        <option value="" selected>Please Select</option>
+        <option>Walk</option>
+        <option>Bicycle</option>
+        <option>Auto Rickshaw</option>
+        <option>Two-Wheeler</option>
+        <option>Car</option>
+        <option>Bus</option>
+        <option>Train</option>
+      </select><span class="error">This field is required</span>
+    </label>
+    <label>Frequency of Public Transport Use (days/week):
+      <input type="number" name="public_transport_freq" min="0" max="7" required><span class="error">This field is required</span>
+    </label>
 
     <label>Monthly Expenditure (Rs.):</label>
-    <label>Transport: <input type="number" name="exp_transport" min="0"></label>
-    <label>Housing: <input type="number" name="exp_housing" min="0"></label>
-    <label>Education: <input type="number" name="exp_education" min="0"></label>
-    <label>Food: <input type="number" name="exp_food" min="0"></label>
-    <label>Health: <input type="number" name="exp_health" min="0"></label>
-    <label>Others: <input type="number" name="exp_others" min="0"></label>
+    <label>Transport: <input type="number" name="exp_transport" min="0" required><span class="error">This field is required</span></label>
+    <label>Housing: <input type="number" name="exp_housing" min="0" required><span class="error">This field is required</span></label>
+    <label>Education: <input type="number" name="exp_education" min="0" required><span class="error">This field is required</span></label>
+    <label>Food: <input type="number" name="exp_food" min="0" required><span class="error">This field is required</span></label>
+    <label>Health: <input type="number" name="exp_health" min="0" required><span class="error">This field is required</span></label>
+    <label>Others: <input type="number" name="exp_others" min="0" required><span class="error">This field is required</span></label>
 
     <label>Nearest Public Transport:
       <select name="nearest_pt_station" required>
@@ -209,87 +208,45 @@
         <option>Bus Station</option>
         <option>Railway Station</option>
         <option>IPT Stand</option>
-      </select>
+      </select><span class="error">This field is required</span>
     </label>
-    <label>Distance to PT (km): <input type="number" step="0.01" name="pt_distance" min="0"></label>
-    <label>Walk Time (min): <input type="number" name="walk_time" min="0"></label>
-    <label>Waiting Time (min): <input type="number" name="waiting_time" min="0"></label>
-    <label>Weekly Usage: <input type="text" name="weekly_usage"></label>
+    <label>Distance to PT (km): <input type="number" step="0.01" name="pt_distance" min="0" required><span class="error">This field is required</span></label>
+    <label>Walk Time (min): <input type="number" name="walk_time" min="0" required><span class="error">This field is required</span></label>
+    <label>Waiting Time (min): <input type="number" name="waiting_time" min="0" required><span class="error">This field is required</span></label>
+    <label>Weekly Usage: <input type="text" name="weekly_usage" required><span class="error">This field is required</span></label>
     <label>Feedback:
       <select name="pt_feedback" required>
         <option value="" selected>Please Select</option>
         <option>Reliable</option>
         <option>Safe</option>
         <option>Expensive</option>
-      </select>
+      </select><span class="error">This field is required</span>
     </label>
-    <label>Suggestions: <textarea name="pt_suggestions"></textarea></label>
+    <label>Suggestions: <textarea name="pt_suggestions" required></textarea><span class="error">This field is required</span></label>
 
     <h2>Personal Information</h2>
     <div id="members"></div>
     <button type="button" onclick="addMember()">+ Add Member</button>
-    <button type="button" onclick="submitLocal()">Submit Locally</button>
-    <button type="button" onclick="submitGoogleSheets()">Submit to Google Sheets</button>
+    <button type="button" onclick="submitLocal()">Save Locally</button>
     <button type="button" onclick="downloadLocalExcel()">Download Local Records</button>
+    <div class="success-message" id="success-message"></div>
+    <div class="failure-message" id="failure-message"></div>
   </form>
-  <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec" method="POST" target="hidden-iframe">
-    <input type="hidden" name="data" id="hidden-data">
-  </form>
-  <iframe name="hidden-iframe" style="display: none;" onload="handleIframeLoad()"></iframe>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const householdId = `H${Date.now()}`;
     document.getElementById('household_id').value = householdId;
     document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
-    let memberIdCounter = 0, tripCounters = {}, transferCounters = {};
-    let lastSubmissionStatus = null;
+    let memberIdCounter = 0, tripCounters = {}, transferCounters = {}, vehicleCounter = 0;
 
     if (!localStorage.getItem('surveyData')) localStorage.setItem('surveyData', JSON.stringify([]));
 
-    // Templates
-    const vehicleTemplate = `
-      <label>Vehicle Type:
-        <select name="veh_type[]" onchange="toggleVehicleFields(this)" required>
-          <option value="" selected>Please Select</option>
-          <option>Car</option>
-          <option>Two-Wheeler</option>
-          <option>Bicycle</option>
-          <option>Auto-Rickshaw</option>
-          <option value="None">None</option>
-        </select>
-        <span class="error" id="veh_type_error">Please select a vehicle type or 'None'.</span>
-      </label>
-      <label>Ownership:
-        <select name="ownership_type[]" class="vehicle-field">
-          <option value="" selected>Please Select</option>
-          <option>Owned</option>
-          <option>Hired</option>
-        </select>
-      </label>
-      <label>Fuel Type:
-        <select name="fuel_type[]" class="vehicle-field">
-          <option value="" selected>Please Select</option>
-          <option>Petrol</option>
-          <option>Diesel</option>
-          <option>Electric</option>
-          <option>CNG</option>
-          <option>None</option>
-        </select>
-      </label>
-      <label>Parking:
-        <select name="parking_type[]" class="vehicle-field">
-          <option value="" selected>Please Select</option>
-          <option>Private Space</option>
-          <option>On Street</option>
-        </select>
-      </label>`;
-
     const memberTemplate = (memberId) => `
       <div class="entry" data-member-id="${memberId}">
-        <label>Member ID: <input type="text" name="member_id_${memberId}" readonly value="${memberId}"></label>
+        <label>Member ID: <input type="text" name="member_id_${memberId}" readonly value="${memberId}" required><span class="error">This field is required</span></label>
         <label>Relation:
-          <select name="relation_${memberId}" required>
+          <select name="relation_${memberId}" onchange="toggleOtherField(this, 'other_relation_${memberId}')" required>
             <option value="" selected>Please Select</option>
             <option value="1">Self</option>
             <option value="2">Spouse</option>
@@ -298,26 +255,28 @@
             <option value="5">Sibling</option>
             <option value="6">Grandparent</option>
             <option value="7">Other</option>
-          </select>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_relation_${memberId}" class="other-specify" placeholder="Please specify">
         </label>
-        <label>Age: <input type="number" name="age_${memberId}" min="0"></label>
+        <label>Age: <input type="number" name="age_${memberId}" min="0" required><span class="error">This field is required</span></label>
         <label>Gender:
-          <select name="gender_${memberId}" required>
+          <select name="gender_${memberId}" onchange="toggleOtherField(this, 'other_gender_${memberId}')" required>
             <option value="" selected>Please Select</option>
             <option value="1">Male</option>
             <option value="2">Female</option>
             <option value="3">Other</option>
-          </select>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_gender_${memberId}" class="other-specify" placeholder="Please specify">
         </label>
         <label>Marital Status:
           <select name="marital_status_${memberId}" required>
             <option value="" selected>Please Select</option>
             <option>Married</option>
             <option>Unmarried</option>
-          </select>
+          </select><span class="error">This field is required</span>
         </label>
         <label>Education:
-          <select name="education_${memberId}" required>
+          <select name="education_${memberId}" onchange="toggleOtherField(this, 'other_education_${memberId}')" required>
             <option value="" selected>Please Select</option>
             <option value="1">Illiterate</option>
             <option value="2">Pre-Primary</option>
@@ -328,10 +287,11 @@
             <option value="7">Graduate</option>
             <option value="8">Post Graduate</option>
             <option value="9">Other</option>
-          </select>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_education_${memberId}" class="other-specify" placeholder="Please specify">
         </label>
         <label>Occupation:
-          <select name="occupation_${memberId}" required>
+          <select name="occupation_${memberId}" onchange="toggleOtherField(this, 'other_occupation_${memberId}')" required>
             <option value="" selected>Please Select</option>
             <option value="1">Full-Time</option>
             <option value="2">Part-Time</option>
@@ -344,10 +304,11 @@
             <option value="9">Unemployed</option>
             <option value="10">Caretaker</option>
             <option value="11">Other</option>
-          </select>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_occupation_${memberId}" class="other-specify" placeholder="Please specify">
         </label>
         <label>Workplace:
-          <select name="employment_place_${memberId}" required>
+          <select name="employment_place_${memberId}" onchange="toggleOtherField(this, 'other_employment_place_${memberId}')" required>
             <option value="" selected>Please Select</option>
             <option value="1">Residential</option>
             <option value="2">Industry</option>
@@ -364,7 +325,8 @@
             <option value="13">Construction</option>
             <option value="14">Varies</option>
             <option value="15">Other</option>
-          </select>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_employment_place_${memberId}" class="other-specify" placeholder="Please specify">
         </label>
         <label>Income (Rs.):
           <select name="income_personal_${memberId}" required>
@@ -381,35 +343,37 @@
             <option value="30001-40000">30,001 - 40,000</option>
             <option value="40001-50000">40,001 - 50,000</option>
             <option value=">50000">Above 50,000</option>
-          </select>
+          </select><span class="error">This field is required</span>
         </label>
         <label>License:
-          <select name="license_${memberId}" required>
+          <select name="license_${memberId}" onchange="toggleOtherField(this, 'other_license_${memberId}')" required>
             <option value="" selected>Please Select</option>
             <option value="1">None</option>
             <option value="2">Two-Wheeler</option>
             <option value="3">Car</option>
             <option value="4">Both</option>
             <option value="5">Other</option>
-          </select>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_license_${memberId}" class="other-specify" placeholder="Please specify">
         </label>
         <label>Travel Pass:
-          <select name="travel_pass_${memberId}" required>
+          <select name="travel_pass_${memberId}" onchange="toggleOtherField(this, 'other_travel_pass_${memberId}')" required>
             <option value="" selected>Please Select</option>
             <option value="1">None</option>
             <option value="2">Rail</option>
             <option value="3">Bus</option>
             <option value="4">Other</option>
-          </select>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_travel_pass_${memberId}" class="other-specify" placeholder="Please specify">
         </label>
-        <label>Pass Cost (Rs.): <input type="number" name="pass_cost_${memberId}" min="0"></label>
-        <label>Travel Expense (Rs.): <input type="number" name="travel_expense_${memberId}" min="0"></label>
+        <label>Pass Cost (Rs.): <input type="number" name="pass_cost_${memberId}" min="0" required><span class="error">This field is required</span></label>
+        <label>Travel Expense (Rs.): <input type="number" name="travel_expense_${memberId}" min="0" required><span class="error">This field is required</span></label>
         <label>Has Trips?:
           <select name="has_trips_${memberId}" onchange="toggleTrips(this)" required>
             <option value="" selected>Please Select</option>
             <option value="yes">Yes</option>
             <option value="no">No</option>
-          </select>
+          </select><span class="error">This field is required</span>
         </label>
         <div class="trip-section" style="display: none;">
           <h3>Trip Information</h3>
@@ -420,7 +384,7 @@
 
     const tripTemplate = (tripId, memberId) => `
       <div class="entry" data-trip-id="${tripId}">
-        <label>Trip ID: <input type="text" name="trip_id_${memberId}_${tripId}" readonly value="${tripId}"></label>
+        <label>Trip ID: <input type="text" name="trip_id_${memberId}_${tripId}" readonly value="${tripId}" required><span class="error">This field is required</span></label>
         <label>Mode:
           <select name="mode_of_transport_${memberId}_${tripId}" onchange="toggleConditionalFields(this)" required>
             <option value="" selected>Please Select</option>
@@ -436,16 +400,16 @@
             <option value="10">App Two-Wheeler</option>
             <option value="11">App Taxi</option>
             <option value="12">App Auto</option>
-          </select>
+          </select><span class="error">This field is required</span>
         </label>
-        <label>Origin: <input type="text" name="origin_name_${memberId}_${tripId}"></label>
-        <label>Destination: <input type="text" name="destination_name_${memberId}_${tripId}"></label>
-        <label>Start Time: <input type="time" name="start_time_${memberId}_${tripId}"></label>
-        <label>End Time: <input type="time" name="end_time_${memberId}_${tripId}"></label>
-        <label>Cost (Rs.): <input type="number" name="travel_cost_${memberId}_${tripId}" min="0"></label>
-        <label>Travel Time (Minutes): <input type="number" name="travel_time_${memberId}_${tripId}" min="0"></label>
+        <label>Origin: <input type="text" name="origin_name_${memberId}_${tripId}" required><span class="error">This field is required</span></label>
+        <label>Destination: <input type="text" name="destination_name_${memberId}_${tripId}" required><span class="error">This field is required</span></label>
+        <label>Start Time: <input type="time" name="start_time_${memberId}_${tripId}" required><span class="error">This field is required</span></label>
+        <label>End Time: <input type="time" name="end_time_${memberId}_${tripId}" required><span class="error">This field is required</span></label>
+        <label>Cost (Rs.): <input type="number" name="travel_cost_${memberId}_${tripId}" min="0" required><span class="error">This field is required</span></label>
+        <label>Travel Time (Minutes): <input type="number" name="travel_time_${memberId}_${tripId}" min="0" required><span class="error">This field is required</span></label>
         <label>Purpose:
-          <select name="trip_purpose_${memberId}_${tripId}" required>
+          <select name="trip_purpose_${memberId}_${tripId}" onchange="toggleOtherField(this, 'other_trip_purpose_${memberId}_${tripId}')" required>
             <option value="" selected>Please Select</option>
             <option value="1">Work</option>
             <option value="2">Education</option>
@@ -453,11 +417,12 @@
             <option value="4">Health</option>
             <option value="5">Leisure</option>
             <option value="6">Other</option>
-          </select>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_trip_purpose_${memberId}_${tripId}" class="other-specify" placeholder="Please specify">
         </label>
         <div class="conditional-fields" style="display: none;">
-          <label>Transfers:
-            <input type="number" name="num_transfers_${memberId}_${tripId}" min="0" max="5" onchange="updateTransferFields(this)">
+          <label>Number of Transfers:
+            <input type="number" name="num_transfers_${memberId}_${tripId}" min="0" max="5" onchange="updateTransferFields(this)" required><span class="error">This field is required</span>
           </label>
           <div class="transfer-entries"></div>
         </div>
@@ -466,10 +431,10 @@
     const transferTemplate = (i, transferId, memberId, tripId) => `
       <div class="entry" data-transfer-id="${transferId}">
         <h4>Transfer ${i + 1}</h4>
-        <label>Transfer ID: <input type="text" name="transfer_id_${memberId}_${tripId}_${i}" readonly value="${transferId}"></label>
-        <label>Stop: <input type="text" name="transfer_stop_name_${memberId}_${tripId}_${i}"></label>
+        <label>Transfer ID: <input type="text" name="transfer_id_${memberId}_${tripId}_${i}" readonly value="${transferId}" required><span class="error">This field is required</span></label>
+        <label>Stop: <input type="text" name="transfer_stop_name_${memberId}_${tripId}_${i}" required><span class="error">This field is required</span></label>
         <label>Mode:
-          <select name="transfer_mode_${memberId}_${tripId}_${i}" required>
+          <select name="transfer_mode_${memberId}_${tripId}_${i}" onchange="toggleOtherField(this, 'other_transfer_mode_${memberId}_${tripId}_${i}')" required>
             <option value="" selected>Please Select</option>
             <option>Walk</option>
             <option>Bicycle</option>
@@ -482,42 +447,102 @@
             <option>App Two-Wheeler</option>
             <option>App Taxi</option>
             <option>App Auto</option>
-          </select>
+            <option>Other</option>
+          </select><span class="error">This field is required</span>
+          <input type="text" name="other_transfer_mode_${memberId}_${tripId}_${i}" class="other-specify" placeholder="Please specify">
         </label>
-        <label>Cost (Rs.): <input type="number" name="transfer_cost_${memberId}_${tripId}_${i}" min="0"></label>
-        <label>Time (min): <input type="number" name="transfer_time_${memberId}_${tripId}_${i}" min="0"></label>
-        <label>Waiting Time (min): <input type="number" name="transfer_waiting_time_${memberId}_${tripId}_${i}" min="0"></label>
+        <label>Cost (Rs.): <input type="number" name="transfer_cost_${memberId}_${tripId}_${i}" min="0" required><span class="error">This field is required</span></label>
+        <label>Time (min): <input type="number" name="transfer_time_${memberId}_${tripId}_${i}" min="0" required><span class="error">This field is required</span></label>
+        <label>Waiting Time (min): <input type="number" name="transfer_waiting_time_${memberId}_${tripId}_${i}" min="0" required><span class="error">This field is required</span></label>
       </div>`;
 
-    // Initialize first member
+    const vehicleTemplate = (vehicleId) => `
+      <div class="entry" data-vehicle-id="${vehicleId}">
+        <label>Vehicle ID: <input type="text" name="vehicle_id_${vehicleId}" readonly value="${vehicleId}" required><span class="error">This field is required</span></label>
+        <label>Vehicle Type:
+          <select name="veh_type_${vehicleId}" required>
+            <option value="" selected>Please Select</option>
+            <option>Car</option>
+            <option>Two-Wheeler</option>
+            <option>Bicycle</option>
+            <option>Auto-Rickshaw</option>
+            <option>None</option>
+          </select><span class="error">This field is required</span>
+        </label>
+        <label>Ownership:
+          <select name="ownership_type_${vehicleId}" required>
+            <option value="" selected>Please Select</option>
+            <option>Owned</option>
+            <option>Hired</option>
+          </select><span class="error">This field is required</span>
+        </label>
+        <label>Fuel Type:
+          <select name="fuel_type_${vehicleId}" required>
+            <option value="" selected>Please Select</option>
+            <option>Petrol</option>
+            <option>Diesel</option>
+            <option>Electric</option>
+            <option>CNG</option>
+            <option>None</option>
+          </select><span class="error">This field is required</span>
+        </label>
+        <label>Parking:
+          <select name="parking_type_${vehicleId}" required>
+            <option value="" selected>Please Select</option>
+            <option>Private Space</option>
+            <option>On Street</option>
+          </select><span class="error">This field is required</span>
+        </label>
+      </div>`;
+
+    // Initialize first member and vehicle
     addMember();
+    addVehicle();
 
     // Functions
     async function getLocation() {
-      if (!navigator.geolocation) return alert('Geolocation not supported.');
+      if (!navigator.geolocation) {
+        alert('Geolocation not supported. Please enter coordinates manually.');
+        document.getElementById('latitude').removeAttribute('readonly');
+        document.getElementById('longitude').removeAttribute('readonly');
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
           document.getElementById('latitude').value = latitude;
           document.getElementById('longitude').value = longitude;
           try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`, {
+              headers: { 'User-Agent': 'CMP-Survey-Visakhapatnam/1.0' }
+            });
+            if (!res.ok) throw new Error('Nominatim API error: ' + res.status);
             const data = await res.json();
             document.getElementById('address').value = data.display_name || 'Address not found';
           } catch (e) {
-            alert('Error fetching address.');
+            console.error('Nominatim error:', e);
+            alert('Unable to fetch address. Please enter manually or try again.');
+            document.getElementById('address').focus();
           }
         },
         (e) => alert('Geolocation error: ' + e.message)
       );
     }
 
-    function addEntry(containerId, template) {
-      const container = document.getElementById(containerId);
-      const div = document.createElement('div');
-      div.className = 'entry';
-      div.innerHTML = template;
-      container.appendChild(div);
+    function toggleOtherField(select, otherFieldName) {
+      const otherInput = select.parentElement.querySelector(`input[name="${otherFieldName}"]`);
+      if (otherInput) {
+        // Check if "Other" is an option in the select
+        const hasOtherOption = Array.from(select.options).some(option => option.value === 'Other' || option.text === 'Other');
+        if (hasOtherOption && select.value === 'Other') {
+          otherInput.style.display = 'block';
+          otherInput.setAttribute('required', 'required');
+        } else {
+          otherInput.style.display = 'none';
+          otherInput.removeAttribute('required');
+          otherInput.value = '';
+        }
+      }
     }
 
     function addMember() {
@@ -545,6 +570,7 @@
 
     function toggleTrips(select) {
       const tripSection = select.closest('.entry').querySelector('.trip-section');
+      const memberId = select.closest('.entry').dataset.memberId;
       if (select.value === 'yes') {
         tripSection.style.display = 'block';
         if (!tripSection.querySelector('.trip-entries').children.length) {
@@ -554,26 +580,30 @@
         tripSection.style.display = 'none';
         tripSection.querySelector('.trip-entries').innerHTML = '';
         alert('No trips for this member. Add the next member if needed.');
+        const numTransfersInputs = tripSection.querySelectorAll('input[name^="num_transfers_"]');
+        numTransfersInputs.forEach(input => {
+          input.value = '0';
+        });
       }
     }
 
     function toggleConditionalFields(select) {
       const fields = select.closest('.entry').querySelector('.conditional-fields');
-      fields.style.display = ['3', '8', '9'].includes(select.value) ? 'block' : 'none';
-      if (fields.style.display === 'none') {
-        fields.querySelector('.transfer-entries').innerHTML = '';
-        fields.querySelector('input[name^="num_transfers_"]').value = '';
+      const mode = select.value;
+      if (['3', '8', '9'].includes(mode)) {
+        fields.style.display = 'block';
+        const numTransfersInput = fields.querySelector('input[name^="num_transfers_"]');
+        if (numTransfersInput && !numTransfersInput.value) {
+          numTransfersInput.value = '0';
+        }
+      } else {
+        fields.style.display = 'none';
+        const numTransfersInput = fields.querySelector('input[name^="num_transfers_"]');
+        if (numTransfersInput) {
+          numTransfersInput.value = '0';
+          fields.querySelector('.transfer-entries').innerHTML = '';
+        }
       }
-    }
-
-    function toggleVehicleFields(select) {
-      const entry = select.closest('.entry');
-      const fields = entry.querySelectorAll('.vehicle-field');
-      const isNone = select.value === 'None';
-      fields.forEach(field => {
-        field.disabled = isNone;
-        if (isNone) field.value = '';
-      });
     }
 
     function updateTransferFields(input) {
@@ -591,37 +621,218 @@
       }
     }
 
-    function validateVehicles() {
-      let isValid = true;
-      document.querySelectorAll('#vehicles .entry').forEach(entry => {
-        const vehType = entry.querySelector('select[name="veh_type[]"]').value;
-        const error = entry.querySelector('#veh_type_error');
-        if (!vehType) {
-          error.style.display = 'block';
-          isValid = false;
-        } else {
-          error.style.display = 'none';
-        }
-      });
-      const formError = document.getElementById('form-error');
-      formError.style.display = isValid ? 'none' : 'block';
-      return isValid;
+    function addVehicle() {
+      vehicleCounter++;
+      const vehicleId = `V${vehicleCounter}`;
+      const vehicles = document.getElementById('vehicles');
+      const div = document.createElement('div');
+      div.innerHTML = vehicleTemplate(vehicleId);
+      vehicles.appendChild(div);
     }
 
-    function handleIframeLoad() {
-      if (lastSubmissionStatus) {
-        lastSubmissionStatus.resolve({ success: true });
+    function toggleVehicleSection(select) {
+      const vehicleSection = document.getElementById('vehicle-section');
+      const addButton = document.getElementById('add-vehicle');
+      if (select.value === 'yes') {
+        vehicleSection.style.display = 'block';
+        addButton.disabled = false;
+        if (!vehicleSection.querySelector('#vehicles').children.length) {
+          addVehicle();
+        }
+      } else if (select.value === 'no') {
+        vehicleSection.style.display = 'none';
+        addButton.disabled = true;
+        document.getElementById('vehicles').innerHTML = '';
+        vehicleCounter = 0;
       }
     }
 
-    function submitToGoogleSheets(data) {
-      return new Promise((resolve) => {
-        const hiddenForm = document.getElementById('hidden-form');
-        const hiddenData = document.getElementById('hidden-data');
-        hiddenData.value = JSON.stringify(data);
-        lastSubmissionStatus = { resolve };
-        hiddenForm.submit();
+    function validateForm() {
+      let isValid = true;
+      const errors = [];
+
+      // Clear previous error messages
+      document.querySelectorAll('.error').forEach(error => error.style.display = 'none');
+
+      // Validate household fields
+      const householdFields = document.querySelectorAll('#survey-form > label > [required]:not([name="mobile"])');
+      householdFields.forEach(field => {
+        if (field.hasAttribute('required') && !field.value && field.name !== 'num_transfers' && field.name !== 'num_vehicles') {
+          isValid = false;
+          const error = field.nextElementSibling;
+          if (error && error.classList.contains('error')) {
+            error.style.display = 'block';
+          }
+          errors.push(`Household field "${field.name}" is required.`);
+        }
       });
+
+      // Validate "Other" fields for household
+      const householdOtherFields = document.querySelectorAll('#survey-form > label > select');
+      householdOtherFields.forEach(select => {
+        const otherInput = select.parentElement.querySelector('.other-specify');
+        if (otherInput && otherInput.style.display === 'block' && !otherInput.value.trim()) {
+          isValid = false;
+          errors.push(`Please specify "${select.name}" when "Other" is selected.`);
+          const error = select.nextElementSibling;
+          if (error && error.classList.contains('error')) {
+            error.style.display = 'block';
+          }
+        }
+      });
+
+      // Validate vehicle fields if present
+      const hasVehiclesSelect = document.getElementById('has_vehicles');
+      const hasVehicles = hasVehiclesSelect ? hasVehiclesSelect.value : '';
+      if (hasVehicles === 'yes') {
+        const vehicleEntries = document.querySelectorAll('#vehicles .entry');
+        if (vehicleEntries.length === 0) {
+          isValid = false;
+          errors.push('At least one vehicle must be added when "Yes" is selected.');
+        }
+        vehicleEntries.forEach((vehicle) => {
+          const vehicleId = vehicle.dataset.vehicleId;
+          const vehicleFields = vehicle.querySelectorAll('[required]');
+          vehicleFields.forEach(field => {
+            if (!field.value && field.name !== 'num_vehicles') {
+              isValid = false;
+              const error = field.nextElementSibling;
+              if (error && error.classList.contains('error')) {
+                error.style.display = 'block';
+              }
+              errors.push(`Vehicle ${vehicleId} field "${field.name}" is required.`);
+            }
+          });
+        });
+      }
+
+      // Validate members, trips, and transfers
+      const members = document.querySelectorAll('#members .entry');
+      if (members.length === 0) {
+        isValid = false;
+        errors.push('At least one member must be added.');
+      }
+      members.forEach((member) => {
+        const memberId = member.dataset.memberId;
+        const memberFields = member.querySelectorAll('[required]');
+        memberFields.forEach(field => {
+          if (!field.value && field.name !== 'num_transfers') {
+            isValid = false;
+            const error = field.nextElementSibling;
+            if (error && error.classList.contains('error')) {
+              error.style.display = 'block';
+            }
+            errors.push(`Member ${memberId} field "${field.name}" is required.`);
+          }
+        });
+
+        // Validate "Other" fields for member
+        const memberOtherFields = member.querySelectorAll('select');
+        memberOtherFields.forEach(select => {
+          const otherInput = select.parentElement.querySelector('.other-specify');
+          if (otherInput && otherInput.style.display === 'block' && !otherInput.value.trim()) {
+            isValid = false;
+            errors.push(`Please specify "${select.name}" for member ${memberId} when "Other" is selected.`);
+            const error = select.nextElementSibling;
+            if (error && error.classList.contains('error')) {
+              error.style.display = 'block';
+            }
+          }
+        });
+
+        const hasTripsSelect = member.querySelector(`select[name="has_trips_${memberId}"]`);
+        const hasTrips = hasTripsSelect ? hasTripsSelect.value : '';
+        if (hasTrips === 'yes') {
+          const trips = member.querySelectorAll('.trip-entries .entry');
+          if (trips.length === 0) {
+            isValid = false;
+            errors.push(`Member ${memberId} has trips selected but no trips added.`);
+          }
+          trips.forEach((trip) => {
+            const tripId = trip.dataset.tripId;
+            const modeOfTransportSelect = trip.querySelector(`select[name="mode_of_transport_${memberId}_${tripId}"]`);
+            const modeOfTransport = modeOfTransportSelect ? modeOfTransportSelect.value : '';
+            const tripFields = trip.querySelectorAll('[required]');
+            tripFields.forEach(field => {
+              if (!field.value && field.name !== 'num_transfers') {
+                isValid = false;
+                const error = field.nextElementSibling;
+                if (error && error.classList.contains('error')) {
+                  error.style.display = 'block';
+                }
+                errors.push(`Trip ${tripId} field "${field.name}" is required.`);
+              }
+            });
+
+            // Validate "Other" fields for trip
+            const tripOtherFields = trip.querySelectorAll('select');
+            tripOtherFields.forEach(select => {
+              const otherInput = select.parentElement.querySelector('.other-specify');
+              if (otherInput && otherInput.style.display === 'block' && !otherInput.value.trim()) {
+                isValid = false;
+                errors.push(`Please specify "${select.name}" for trip ${tripId} when "Other" is selected.`);
+                const error = select.nextElementSibling;
+                if (error && error.classList.contains('error')) {
+                  error.style.display = 'block';
+                }
+              }
+            });
+
+            if (['3', '8', '9'].includes(modeOfTransport)) {
+              const numTransfersInput = trip.querySelector(`input[name="num_transfers_${memberId}_${tripId}"]`);
+              if (numTransfersInput && !numTransfersInput.value) {
+                isValid = false;
+                const error = numTransfersInput.nextElementSibling;
+                if (error && error.classList.contains('error')) {
+                  error.style.display = 'block';
+                }
+                errors.push(`Number of transfers for trip ${tripId} is required.`);
+              } else {
+                const numTransfers = parseInt(numTransfersInput.value) || 0;
+                const transfers = trip.querySelectorAll('.transfer-entries .entry');
+                if (numTransfers > 0 && transfers.length !== numTransfers) {
+                  isValid = false;
+                  errors.push(`Number of transfers for trip ${tripId} does not match added transfers.`);
+                }
+                transfers.forEach((transfer, transferIndex) => {
+                  const transferFields = transfer.querySelectorAll('[required]');
+                  transferFields.forEach(field => {
+                    if (!field.value) {
+                      isValid = false;
+                      const error = field.nextElementSibling;
+                      if (error && error.classList.contains('error')) {
+                        error.style.display = 'block';
+                      }
+                      errors.push(`Transfer ${transferIndex + 1} in Trip ${tripId} field "${field.name}" is required.`);
+                    }
+                  });
+
+                  // Validate "Other" fields for transfer
+                  const transferOtherFields = transfer.querySelectorAll('select');
+                  transferOtherFields.forEach(select => {
+                    const otherInput = select.parentElement.querySelector('.other-specify');
+                    if (otherInput && otherInput.style.display === 'block' && !otherInput.value.trim()) {
+                      isValid = false;
+                      errors.push(`Please specify "${select.name}" for transfer ${transferIndex + 1} in trip ${tripId} when "Other" is selected.`);
+                      const error = select.nextElementSibling;
+                      if (error && error.classList.contains('error')) {
+                        error.style.display = 'block';
+                      }
+                    }
+                  });
+                });
+              }
+            }
+          });
+        } else if (hasTrips === 'no') {
+          // No action needed, already handled by toggleTrips
+        }
+      });
+
+      if (!isValid) {
+        alert('Please fill all required fields:\n' + errors.join('\n'));
+      }
+      return isValid;
     }
 
     function collectFormData() {
@@ -630,37 +841,41 @@
       const timestamp = new Date().toISOString();
       const data = {
         household: {
-          household_id: formData.get('household_id'),
-          surveyor_name: formData.get('surveyor_name'),
-          surveyor_hhid: formData.get('surveyor_hhid'),
-          submission_date: formData.get('submission_date'),
+          household_id: formData.get('household_id') || '',
+          surveyor_name: formData.get('surveyor_name') || '',
+          surveyor_hhid: formData.get('surveyor_hhid') || '',
+          submission_date: formData.get('submission_date') || '',
           timestamp: timestamp,
-          ward_no: formData.get('ward_no'),
-          taz_no: formData.get('taz_no'),
-          head_name: formData.get('head_name'),
-          door_no: formData.get('door_no'),
-          address: formData.get('address'),
-          latitude: formData.get('latitude'),
-          longitude: formData.get('longitude'),
-          mobile: formData.get('mobile'),
-          household_type: formData.get('household_type'),
-          house_ownership: formData.get('house_ownership'),
-          num_rooms: formData.get('num_rooms'),
-          num_earners: formData.get('num_earners'),
-          income: formData.get('income'),
-          exp_transport: formData.get('exp_transport'),
-          exp_housing: formData.get('exp_housing'),
-          exp_education: formData.get('exp_education'),
-          exp_food: formData.get('exp_food'),
-          exp_health: formData.get('exp_health'),
-          exp_others: formData.get('exp_others'),
-          nearest_pt_station: formData.get('nearest_pt_station'),
-          pt_distance: formData.get('pt_distance'),
-          walk_time: formData.get('walk_time'),
-          waiting_time: formData.get('waiting_time'),
-          weekly_usage: formData.get('weekly_usage'),
-          pt_feedback: formData.get('pt_feedback'),
-          pt_suggestions: formData.get('pt_suggestions')
+          ward_no: formData.get('ward_no') || '',
+          taz_no: formData.get('taz_no') || '',
+          head_name: formData.get('head_name') || '',
+          door_no: formData.get('door_no') || '',
+          address: formData.get('address') || '',
+          latitude: formData.get('latitude') || '',
+          longitude: formData.get('longitude') || '',
+          mobile: formData.get('mobile') || '',
+          household_type: formData.get('household_type') || '',
+          other_household_type: formData.get('other_household_type') || '',
+          house_ownership: formData.get('house_ownership') || '',
+          num_rooms: formData.get('num_rooms') || '',
+          num_earners: formData.get('num_earners') || '',
+          income: formData.get('income') || '',
+          commute_distance: formData.get('commute_distance') || '',
+          preferred_transport: formData.get('preferred_transport') || '',
+          public_transport_freq: formData.get('public_transport_freq') || '',
+          exp_transport: formData.get('exp_transport') || '',
+          exp_housing: formData.get('exp_housing') || '',
+          exp_education: formData.get('exp_education') || '',
+          exp_food: formData.get('exp_food') || '',
+          exp_health: formData.get('exp_health') || '',
+          exp_others: formData.get('exp_others') || '',
+          nearest_pt_station: formData.get('nearest_pt_station') || '',
+          pt_distance: formData.get('pt_distance') || '',
+          walk_time: formData.get('walk_time') || '',
+          waiting_time: formData.get('waiting_time') || '',
+          weekly_usage: formData.get('weekly_usage') || '',
+          pt_feedback: formData.get('pt_feedback') || '',
+          pt_suggestions: formData.get('pt_suggestions') || ''
         },
         vehicles: [],
         members: [],
@@ -668,41 +883,54 @@
         transfers: []
       };
 
-      // Vehicles
-      document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
-        const vehType = entry.querySelector('select[name="veh_type[]"]')?.value;
-        data.vehicles.push({
-          household_id: data.household.household_id,
-          vehicle_number: i + 1,
-          veh_type: vehType || '',
-          ownership_type: vehType === 'None' ? '' : entry.querySelector('select[name="ownership_type[]"]')?.value || '',
-          fuel_type: vehType === 'None' ? '' : entry.querySelector('select[name="fuel_type[]"]')?.value || '',
-          parking_type: vehType === 'None' ? '' : entry.querySelector('select[name="parking_type[]"]')?.value || '',
-          surveyor_name: data.household.surveyor_name,
-          timestamp: timestamp
+      // Collect vehicle data
+      const hasVehicles = formData.get('has_vehicles') || '';
+      if (hasVehicles === 'yes') {
+        document.querySelectorAll('#vehicles .entry').forEach((vehicle) => {
+          const vehicleId = vehicle.dataset.vehicleId;
+          const vehicleData = {
+            household_id: data.household.household_id,
+            vehicle_id: vehicleId,
+            veh_type: vehicle.querySelector(`select[name="veh_type_${vehicleId}"]`)?.value || '',
+            ownership_type: vehicle.querySelector(`select[name="ownership_type_${vehicleId}"]`)?.value || '',
+            fuel_type: vehicle.querySelector(`select[name="fuel_type_${vehicleId}"]`)?.value || '',
+            parking_type: vehicle.querySelector(`select[name="parking_type_${vehicleId}"]`)?.value || '',
+            surveyor_name: data.household.surveyor_name,
+            timestamp: timestamp
+          };
+          if (vehicleData.veh_type) {
+            data.vehicles.push(vehicleData);
+          }
         });
-        console.log(`Vehicle ${i + 1}:`, data.vehicles[i]);
-      });
+      }
 
       // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
         const memberId = member.dataset.memberId;
-        const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`)?.value;
+        const hasTripsSelect = member.querySelector(`select[name="has_trips_${memberId}"]`);
+        const hasTrips = hasTripsSelect ? hasTripsSelect.value : '';
 
         // Add Member
         const memberData = {
           household_id: data.household.household_id,
           member_id: memberId,
           relation: member.querySelector(`select[name="relation_${memberId}"]`)?.value || '',
+          other_relation: member.querySelector(`input[name="other_relation_${memberId}"]`)?.value || '',
           age: member.querySelector(`input[name="age_${memberId}"]`)?.value || '',
           gender: member.querySelector(`select[name="gender_${memberId}"]`)?.value || '',
+          other_gender: member.querySelector(`input[name="other_gender_${memberId}"]`)?.value || '',
           marital_status: member.querySelector(`select[name="marital_status_${memberId}"]`)?.value || '',
           education: member.querySelector(`select[name="education_${memberId}"]`)?.value || '',
+          other_education: member.querySelector(`input[name="other_education_${memberId}"]`)?.value || '',
           occupation: member.querySelector(`select[name="occupation_${memberId}"]`)?.value || '',
+          other_occupation: member.querySelector(`input[name="other_occupation_${memberId}"]`)?.value || '',
           employment_place: member.querySelector(`select[name="employment_place_${memberId}"]`)?.value || '',
+          other_employment_place: member.querySelector(`input[name="other_employment_place_${memberId}"]`)?.value || '',
           income_personal: member.querySelector(`select[name="income_personal_${memberId}"]`)?.value || '',
           license: member.querySelector(`select[name="license_${memberId}"]`)?.value || '',
+          other_license: member.querySelector(`input[name="other_license_${memberId}"]`)?.value || '',
           travel_pass: member.querySelector(`select[name="travel_pass_${memberId}"]`)?.value || '',
+          other_travel_pass: member.querySelector(`input[name="other_travel_pass_${memberId}"]`)?.value || '',
           pass_cost: member.querySelector(`input[name="pass_cost_${memberId}"]`)?.value || '',
           travel_expense: member.querySelector(`input[name="travel_expense_${memberId}"]`)?.value || '',
           surveyor_name: data.household.surveyor_name,
@@ -715,25 +943,24 @@
         // Add Trips and Transfers
         if (hasTrips === 'yes') {
           const tripEntries = member.querySelectorAll('.trip-entries .entry');
-          if (tripEntries.length === 0) {
-            alert('Please add at least one trip for this member.');
-            throw new Error('No trips added');
-          }
           tripEntries.forEach((trip) => {
             const tripId = trip.dataset.tripId;
+            const modeOfTransportSelect = trip.querySelector(`select[name="mode_of_transport_${memberId}_${tripId}"]`);
+            const modeOfTransport = modeOfTransportSelect ? modeOfTransportSelect.value : '';
             const tripData = {
               household_id: data.household.household_id,
               member_id: memberId,
               trip_id: tripId,
-              mode_of_transport: trip.querySelector(`select[name="mode_of_transport_${memberId}_${tripId}"]`)?.value || '',
+              mode_of_transport: modeOfTransport,
               origin_name: trip.querySelector(`input[name="origin_name_${memberId}_${tripId}"]`)?.value || '',
               destination_name: trip.querySelector(`input[name="destination_name_${memberId}_${tripId}"]`)?.value || '',
               start_time: trip.querySelector(`input[name="start_time_${memberId}_${tripId}"]`)?.value || '',
-              end_time: tap.querySelector(`input[name="end_time_${memberId}_${tripId}"]`)?.value || '',
+              end_time: trip.querySelector(`input[name="end_time_${memberId}_${tripId}"]`)?.value || '',
               travel_cost: trip.querySelector(`input[name="travel_cost_${memberId}_${tripId}"]`)?.value || '',
               travel_time: trip.querySelector(`input[name="travel_time_${memberId}_${tripId}"]`)?.value || '',
               trip_purpose: trip.querySelector(`select[name="trip_purpose_${memberId}_${tripId}"]`)?.value || '',
-              num_transfers: trip.querySelector(`input[name="num_transfers_${memberId}_${tripId}"]`)?.value || '0',
+              other_trip_purpose: trip.querySelector(`input[name="other_trip_purpose_${memberId}_${tripId}"]`)?.value || '',
+              num_transfers: ['3', '8', '9'].includes(modeOfTransport) ? (trip.querySelector(`input[name="num_transfers_${memberId}_${tripId}"]`)?.value || '0') : '0',
               surveyor_name: data.household.surveyor_name,
               timestamp: timestamp
             };
@@ -743,34 +970,41 @@
 
             // Add Transfers
             const numTransfers = parseInt(tripData.num_transfers) || 0;
-            trip.querySelectorAll('.transfer-entries .entry').forEach((transfer, i) => {
-              const transferData = {
-                household_id: data.household.household_id,
-                member_id: memberId,
-                trip_id: tripId,
-                transfer_id: transfer.querySelector(`input[name="transfer_id_${memberId}_${tripId}_${i}"]`)?.value || '',
-                stop_name: transfer.querySelector(`input[name="transfer_stop_name_${memberId}_${tripId}_${i}"]`)?.value || '',
-                mode: transfer.querySelector(`select[name="transfer_mode_${memberId}_${tripId}_${i}"]`)?.value || '',
-                cost: transfer.querySelector(`input[name="transfer_cost_${memberId}_${tripId}_${i}"]`)?.value || '',
-                time: transfer.querySelector(`input[name="transfer_time_${memberId}_${tripId}_${i}"]`)?.value || '',
-                waiting_time: transfer.querySelector(`input[name="transfer_waiting_time_${memberId}_${tripId}_${i}"]`)?.value || '',
-                surveyor_name: data.household.surveyor_name,
-                timestamp: timestamp
-              };
-              if (transferData.mode) {
-                data.transfers.push(transferData);
-              }
-            });
+            if (numTransfers > 0) {
+              const transferEntries = trip.querySelectorAll('.transfer-entries .entry');
+              transferEntries.forEach((transfer, i) => {
+                const transferData = {
+                  household_id: data.household.household_id,
+                  member_id: memberId,
+                  trip_id: tripId,
+                  transfer_id: transfer.querySelector(`input[name="transfer_id_${memberId}_${tripId}_${i}"]`)?.value || '',
+                  stop_name: transfer.querySelector(`input[name="transfer_stop_name_${memberId}_${tripId}_${i}"]`)?.value || '',
+                  mode: transfer.querySelector(`select[name="transfer_mode_${memberId}_${tripId}_${i}"]`)?.value || '',
+                  other_mode: transfer.querySelector(`input[name="other_transfer_mode_${memberId}_${tripId}_${i}"]`)?.value || '',
+                  cost: transfer.querySelector(`input[name="transfer_cost_${memberId}_${tripId}_${i}"]`)?.value || '',
+                  time: transfer.querySelector(`input[name="transfer_time_${memberId}_${tripId}_${i}"]`)?.value || '',
+                  waiting_time: transfer.querySelector(`input[name="transfer_waiting_time_${memberId}_${tripId}_${i}"]`)?.value || '',
+                  surveyor_name: data.household.surveyor_name,
+                  timestamp: timestamp
+                };
+                if (transferData.mode) {
+                  data.transfers.push(transferData);
+                }
+              });
+            }
           });
         }
       });
-      console.log('Collected Data:', data);
       return data;
     }
 
     function saveToLocalExcel(data) {
       const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
       storedData.push(data);
+      const dataString = JSON.stringify(storedData);
+      if (dataString.length > 4 * 1024 * 1024) {
+        alert('Local storage is nearly full. Please download and clear records.');
+      }
       localStorage.setItem('surveyData', JSON.stringify(storedData));
     }
 
@@ -792,7 +1026,7 @@
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(households), 'Households');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(vehicles), 'Vehicles_1');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(vehicles), 'Vehicles');
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(members), 'Members');
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(trips), 'Trips');
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(transfers), 'Transfers');
@@ -804,42 +1038,44 @@
 
     async function submitLocal() {
       try {
-        if (!validateVehicles()) {
-          return;
-        }
+        if (!validateForm()) return;
+        if (!confirm('Are you sure you want to save the form? All data will be cleared after saving.')) return;
         const data = collectFormData();
-        saveToLocalExcel(data);
-        alert('Survey saved locally as Excel!');
-        document.getElementById('survey-form').reset();
-        resetForm();
-      } catch (e) {
-        alert('Error saving survey locally: ' + e.message);
-      }
-    }
 
-    async function submitGoogleSheets() {
-      try {
-        if (!validateVehicles()) {
-          return;
-        }
-        const data = collectFormData();
-        const result = await submitToGoogleSheets(data);
-        if (result.success) {
-          alert('Survey submitted to Google Sheets!');
-          saveToLocalExcel(data); // Also save locally as backup
-          document.getElementById('survey-form').reset();
-          resetForm();
-        } else {
-          alert('Error submitting survey to Google Sheets. Data saved locally.');
-          saveToLocalExcel(data);
-          document.getElementById('survey-form').reset();
-          resetForm();
-        }
-      } catch (e) {
-        alert('Error submitting survey: ' + e.message);
+        // Save to local storage first
         saveToLocalExcel(data);
+
+        // Submit to Google Sheets
+        const response = await fetch('https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const result = await response.text();
+          document.getElementById('success-message').textContent = 'Data submitted successfully: ' + result;
+          document.getElementById('success-message').style.display = 'block';
+          document.getElementById('failure-message').style.display = 'none';
+        } else {
+          const errorText = await response.text();
+          document.getElementById('failure-message').textContent = 'Submission failed: ' + errorText;
+          document.getElementById('failure-message').style.display = 'block';
+          document.getElementById('success-message').style.display = 'none';
+          throw new Error('Submission failed');
+        }
+
+        alert('Survey saved locally and submitted to Google Sheets!');
         document.getElementById('survey-form').reset();
         resetForm();
+      } catch (e) {
+        console.error('Error in submitLocal:', e);
+        document.getElementById('failure-message').textContent = 'Error submitting to Google Sheets: ' + e.message;
+        document.getElementById('failure-message').style.display = 'block';
+        document.getElementById('success-message').style.display = 'none';
+        alert('Survey saved locally, but Google Sheets submission failed.');
       }
     }
 
@@ -847,13 +1083,19 @@
       const newHouseholdId = `H${Date.now()}`;
       document.getElementById('household_id').value = newHouseholdId;
       document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('vehicles').innerHTML = '<div class="entry">' + vehicleTemplate + '</div>';
       document.getElementById('members').innerHTML = '';
+      document.getElementById('vehicles').innerHTML = '';
+      document.getElementById('has_vehicles').value = '';
+      document.getElementById('vehicle-section').style.display = 'none';
+      document.getElementById('add-vehicle').disabled = true;
       memberIdCounter = 0;
+      vehicleCounter = 0;
       tripCounters = {};
       transferCounters = {};
       addMember();
-      document.getElementById('form-error').style.display = 'none';
+      document.querySelectorAll('.error').forEach(error => error.style.display = 'none');
+      document.getElementById('success-message').style.display = 'none';
+      document.getElementById('failure-message').style.display = 'none';
     }
   </script>
 </body>
