@@ -72,6 +72,18 @@
       color: red;
       font-size: 0.9em;
       display: none;
+      margin-top: 5px;
+    }
+    .form-error {
+      color: red;
+      font-size: 1em;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: #ffe6e6;
+      border-radius: 4px;
     }
     #hidden-form { display: none; }
     @media (max-width: 600px) {
@@ -82,6 +94,7 @@
 </head>
 <body>
   <h1>Comprehensive Mobility Plan Survey - Visakhapatnam</h1>
+  <div id="form-error" class="form-error">Unable to submit form. Please select a vehicle type or 'None' for all vehicle entries.</div>
   <form id="survey-form" novalidate>
     <h2>Household Information</h2>
     <label>Surveyor Name: <input type="text" name="surveyor_name" required></label>
@@ -145,7 +158,7 @@
     <label>Vehicles Owned:</label>
     <div id="vehicles" class="entry">
       <label>Vehicle Type:
-        <select name="veh_type[]" onchange="toggleVehicleFields(this)">
+        <select name="veh_type[]" onchange="toggleVehicleFields(this)" required>
           <option value="" selected>Please Select</option>
           <option>Car</option>
           <option>Two-Wheeler</option>
@@ -153,7 +166,7 @@
           <option>Auto-Rickshaw</option>
           <option value="None">None</option>
         </select>
-        <span class="error" id="veh_type_error">Please select a vehicle type or "None".</span>
+        <span class="error" id="veh_type_error">Please select a vehicle type or 'None'.</span>
       </label>
       <label>Ownership:
         <select name="ownership_type[]" class="vehicle-field">
@@ -237,7 +250,7 @@
     // Templates
     const vehicleTemplate = `
       <label>Vehicle Type:
-        <select name="veh_type[]" onchange="toggleVehicleFields(this)">
+        <select name="veh_type[]" onchange="toggleVehicleFields(this)" required>
           <option value="" selected>Please Select</option>
           <option>Car</option>
           <option>Two-Wheeler</option>
@@ -245,7 +258,7 @@
           <option>Auto-Rickshaw</option>
           <option value="None">None</option>
         </select>
-        <span class="error" id="veh_type_error">Please select a vehicle type or "None".</span>
+        <span class="error" id="veh_type_error">Please select a vehicle type or 'None'.</span>
       </label>
       <label>Ownership:
         <select name="ownership_type[]" class="vehicle-field">
@@ -323,7 +336,7 @@
             <option value="1">Full-Time</option>
             <option value="2">Part-Time</option>
             <option value="3">Business</option>
-            <option value="4">Employer Business</option<|reserved_114|>
+            <option value="4">Employer Business</option>
             <option value="5">Daily Wages</option>
             <option value="6">Student</option>
             <option value="7">Homemaker</option>
@@ -590,6 +603,8 @@
           error.style.display = 'none';
         }
       });
+      const formError = document.getElementById('form-error');
+      formError.style.display = isValid ? 'none' : 'block';
       return isValid;
     }
 
@@ -655,11 +670,11 @@
 
       // Vehicles
       document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
-        const vehType = entry.querySelector('select[name="veh_type[]"]')?.value || 'None';
+        const vehType = entry.querySelector('select[name="veh_type[]"]')?.value;
         data.vehicles.push({
           household_id: data.household.household_id,
           vehicle_number: i + 1,
-          veh_type: vehType,
+          veh_type: vehType || '',
           ownership_type: vehType === 'None' ? '' : entry.querySelector('select[name="ownership_type[]"]')?.value || '',
           fuel_type: vehType === 'None' ? '' : entry.querySelector('select[name="fuel_type[]"]')?.value || '',
           parking_type: vehType === 'None' ? '' : entry.querySelector('select[name="parking_type[]"]')?.value || '',
@@ -714,7 +729,7 @@
               origin_name: trip.querySelector(`input[name="origin_name_${memberId}_${tripId}"]`)?.value || '',
               destination_name: trip.querySelector(`input[name="destination_name_${memberId}_${tripId}"]`)?.value || '',
               start_time: trip.querySelector(`input[name="start_time_${memberId}_${tripId}"]`)?.value || '',
-              end_time: trip.querySelector(`input[name="end_time_${memberId}_${tripId}"]`)?.value || '',
+              end_time: tap.querySelector(`input[name="end_time_${memberId}_${tripId}"]`)?.value || '',
               travel_cost: trip.querySelector(`input[name="travel_cost_${memberId}_${tripId}"]`)?.value || '',
               travel_time: trip.querySelector(`input[name="travel_time_${memberId}_${tripId}"]`)?.value || '',
               trip_purpose: trip.querySelector(`select[name="trip_purpose_${memberId}_${tripId}"]`)?.value || '',
@@ -790,7 +805,6 @@
     async function submitLocal() {
       try {
         if (!validateVehicles()) {
-          alert('Please ensure all vehicle entries have a type selected or "None".');
           return;
         }
         const data = collectFormData();
@@ -806,7 +820,6 @@
     async function submitGoogleSheets() {
       try {
         if (!validateVehicles()) {
-          alert('Please ensure all vehicle entries have a type selected or "None".');
           return;
         }
         const data = collectFormData();
@@ -840,6 +853,7 @@
       tripCounters = {};
       transferCounters = {};
       addMember();
+      document.getElementById('form-error').style.display = 'none';
     }
   </script>
 </body>
