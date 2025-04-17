@@ -71,8 +71,8 @@
     .error {
       color: red;
       font-size: 0.9em;
+      margin: 10px 0;
     }
-    #hidden-form { display: none; }
     @media (max-width: 600px) {
       input, select, textarea { width: 100%; }
       h1 { font-size: 1.5em; }
@@ -81,6 +81,7 @@
 </head>
 <body>
   <h1>Comprehensive Mobility Plan Survey - Visakhapatnam</h1>
+  <div id="error-message" class="error" style="display: none;"></div>
   <form id="survey-form">
     <h2>Household Information</h2>
     <label>Surveyor Name: <input type="text" name="surveyor_name" required></label>
@@ -117,7 +118,7 @@
         <option>Employer Provided</option>
       </select>
     </label>
-   <label>No. of Rooms:
+    <label>No. of Rooms:
       <select name="num_rooms" required>
         <option value="" selected>Please Select</option>
         <option>1 Room</option>
@@ -221,10 +222,6 @@
     <button type="button" onclick="submitGoogleSheets()">Submit to Google Sheets</button>
     <button type="button" onclick="downloadLocalExcel()">Download Local Records</button>
   </form>
-  <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec" method="POST" target="hidden-iframe">
-    <input type="hidden" name="data" id="hidden-data">
-  </form>
-  <iframe name="hidden-iframe" style="display: none;" onload="handleIframeLoad()"></iframe>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
@@ -232,7 +229,6 @@
     document.getElementById('household_id').value = householdId;
     document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
     let memberIdCounter = 0, tripCounters = {}, transferCounters = {};
-    let lastSubmissionStatus = null;
 
     if (!localStorage.getItem('surveyData')) localStorage.setItem('surveyData', JSON.stringify([]));
 
@@ -393,7 +389,7 @@
             <option value="2">Two-Wheeler</option>
             <option value="3">Car</option>
             <option value="4">Both</option>
-            <option value五"5">Other</option>
+            <option value="5">Other</option>
           </select>
         </label>
         <div id="license_other_${memberId}" class="conditional-fields" style="display: none;">
@@ -454,7 +450,7 @@
         <label>Cost (Rs.): <input type="number" name="travel_cost_${memberId}_${tripId}" min="0"></label>
         <label>Travel Time (Minutes): <input type="number" name="travel_time_${memberId}_${tripId}" min="0"></label>
         <label>Purpose:
-          <select name="trip_purpose_${memberId}_${tripId}" required>
+          <select name="trip_purpose_${memberId}_${tripId}" required onchange="toggleOtherField(this, 'trip_purpose_other_${memberId}_${tripId}')">
             <option value="" selected>Please Select</option>
             <option value="1">Work</option>
             <option value="2">Education</option>
@@ -510,7 +506,7 @@
 
     // Functions
     async function getLocation() {
-      if (!navigator.geolocation) return alert('Geolocation not supported.');
+      if (!navigator.geolocation) return showError('Geolocation not supported.');
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
@@ -521,11 +517,18 @@
             const data = await res.json();
             document.getElementById('address').value = data.display_name || 'Address not found';
           } catch (e) {
-            alert('Error fetching address.');
+            showError('Error fetching address.');
           }
         },
-        (e) => alert('Geolocation error: ' + e.message)
+        (e) => showError('Geolocation error: ' + e.message)
       );
+    }
+
+    function showError(message) {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
     }
 
     function addEntry(containerId, template) {
@@ -586,7 +589,7 @@
 
     function toggleOtherField(select, divId) {
       const div = document.getElementById(divId);
-      if (select.value === 'Other' || select.value === '7' || select.value === '3' || select.value === '9' || select.value === '11' || select.value === '15' || select.value === '5' || select.value === '4') {
+      if (select.value === 'Other' || select.value === '7' || select.value === '3' || select.value === '9' || select.value === '11' || select.value === '15' || select.value === '5' || select.value === '4' || select.value === '6') {
         div.style.display = 'block';
       } else {
         div.style.display = 'none';
@@ -604,7 +607,7 @@
       } else if (select.value === 'no') {
         tripSection.style.display = 'none';
         tripSection.querySelector('.trip-entries').innerHTML = '';
-        alert('No trips for this member. Add the next member if needed.');
+        showError('No trips for this member. Add the next member if needed.');
       }
     }
 
@@ -632,20 +635,14 @@
       }
     }
 
-    function handleIframeLoad() {
-      if (lastSubmissionStatus) {
-        lastSubmissionStatus.resolve({ success: true });
-      }
-    }
-
     function submitToGoogleSheets(data) {
-      return new Promise((resolve) => {
-        const hiddenForm = document.getElementById('hidden-form');
-        const hiddenData = document.getElementById('hidden-data');
-        hiddenData.value = JSON.stringify(data);
-        lastSubmissionStatus = { resolve };
-        hiddenForm.submit();
-      });
+      return fetch('https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(JSON.stringify(data))
+      })
+      .then(response => response.json())
+      .catch(error => ({ success: false, message: error.message }));
     }
 
     function collectFormData() {
@@ -694,21 +691,31 @@
       };
 
       // Vehicles
-      document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
-        const vehType = entry.querySelector('select[name="veh_type[]"]')?.value;
-        if (vehType) {
-          data.vehicles.push({
+      const vehicleEntries = document.querySelectorAll('#vehicles .entry');
+      if (vehicleEntries.length === 0) {
+        console.warn('No vehicle entries found.');
+      }
+      vehicleEntries.forEach((entry, i) => {
+        const vehTypeSelect = entry.querySelector('select[name="veh_type[]"]');
+        const vehType = vehTypeSelect ? vehTypeSelect.value : '';
+        if (vehType) { // Only include if vehicle type is selected
+          const vehicleData = {
             household_id: data.household.household_id,
             vehicle_number: i + 1,
             veh_type: vehType,
-            ownership_type: vehType === 'None' ? '' : entry.querySelector('select[name="ownership_type[]"]')?.value || '',
-            fuel_type: vehType === 'None' ? '' : entry.querySelector('select[name="fuel_type[]"]')?.value || '',
-            parking_type: vehType === 'None' ? '' : entry.querySelector('select[name="parking_type[]"]')?.value || '',
+            ownership_type: vehType === 'None' ? '' : (entry.querySelector('select[name="ownership_type[]"]')?.value || ''),
+            fuel_type: vehType === 'None' ? '' : (entry.querySelector('select[name="fuel_type[]"]')?.value || ''),
+            parking_type: vehType === 'None' ? '' : (entry.querySelector('select[name="parking_type[]"]')?.value || ''),
             surveyor_name: data.household.surveyor_name,
             timestamp: timestamp
-          });
+          };
+          data.vehicles.push(vehicleData);
         }
       });
+      console.log('Collected vehicle data:', data.vehicles);
+      if (data.vehicles.length === 0) {
+        showError('Warning: No valid vehicle data collected. Please ensure at least one vehicle type is selected.');
+      }
 
       // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
@@ -749,7 +756,7 @@
         if (hasTrips === 'yes') {
           const tripEntries = member.querySelectorAll('.trip-entries .entry');
           if (tripEntries.length === 0) {
-            alert('Please add at least one trip for this member.');
+            showError('Please add at least one trip for this member.');
             throw new Error('No trips added');
           }
           tripEntries.forEach((trip) => {
@@ -783,7 +790,7 @@
                 member_id: memberId,
                 trip_id: tripId,
                 transfer_id: transfer.querySelector(`input[name="transfer_id_${memberId}_${tripId}_${i}"]`)?.value || '',
-                stop_name: transfer.querySelector(`input[name="transfer_stop_name_${memberId}_${tripId}_${i}"]`)?.value || '',
+                stop_name: transfer.querySelector(`input[name="transfer_stop_name_${memberId_${tripId}_${i}"]`)?.value || '',
                 mode: transfer.querySelector(`select[name="transfer_mode_${memberId}_${tripId}_${i}"]`)?.value || '',
                 mode_specify: formData.get(`transfer_mode_specify_${memberId}_${tripId}_${i}`) || '',
                 cost: transfer.querySelector(`input[name="transfer_cost_${memberId}_${tripId}_${i}"]`)?.value || '',
@@ -811,7 +818,7 @@
     function downloadLocalExcel() {
       const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
       if (!storedData.length) {
-        alert('No local records found to download.');
+        showError('No local records found to download.');
         return;
       }
 
@@ -833,38 +840,39 @@
 
       const fileName = 'Survey_All_Records.xlsx';
       XLSX.writeFile(wb, fileName);
-      alert('Local records downloaded as Excel!');
+      showError('Local records downloaded as Excel!');
     }
 
     async function submitLocal() {
       try {
         const data = collectFormData();
         saveToLocalExcel(data);
-        alert('Survey saved locally as Excel!');
+        showError('Survey saved locally as Excel!');
         document.getElementById('survey-form').reset();
         resetForm();
       } catch (e) {
-        alert('Error saving survey locally: ' + e.message);
+        showError('Error saving survey locally: ' + e.message);
       }
     }
 
     async function submitGoogleSheets() {
       try {
         const data = collectFormData();
+        console.log('Submitting data to Google Sheets:', data);
         const result = await submitToGoogleSheets(data);
         if (result.success) {
-          alert('Survey submitted to Google Sheets!');
-          saveToLocalExcel(data); // Also save locally as backup
+          showError('Survey submitted to Google Sheets!');
+          saveToLocalExcel(data); // Save locally as backup
           document.getElementById('survey-form').reset();
           resetForm();
         } else {
-          alert('Error submitting survey to Google Sheets. Data saved locally.');
+          showError('Error submitting survey to Google Sheets: ' + result.message + '. Data saved locally.');
           saveToLocalExcel(data);
           document.getElementById('survey-form').reset();
           resetForm();
         }
       } catch (e) {
-        alert('Error submitting survey: ' + e.message);
+        showError('Error submitting survey: ' + e.message + '. Data saved locally.');
         saveToLocalExcel(data);
         document.getElementById('survey-form').reset();
         resetForm();
