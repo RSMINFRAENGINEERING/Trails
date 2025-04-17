@@ -633,14 +633,25 @@
       };
 
       document.querySelectorAll('#vehicles .entry').forEach((entry, i) => {
-        data.vehicles.push({
-          household_id: data.household.household_id,
-          vehicle_number: i + 1,
-          veh_type: entry.querySelector('select[name="veh_type[]"]').value,
-          ownership_type: entry.querySelector('select[name="ownership_type[]"]').value,
-          fuel_type: entry.querySelector('select[name="fuel_type[]"]').value,
-          parking_type: entry.querySelector('select[name="parking_type[]"]').value
-        });
+  const vehType = entry.querySelector('select[name="veh_type[]"]')?.value || '';
+  const ownershipType = entry.querySelector('select[name="ownership_type[]"]')?.value || '';
+  const fuelType = entry.querySelector('select[name="fuel_type[]"]')?.value || '';
+  const parkingType = entry.querySelector('select[name="parking_type[]"]')?.value || '';
+  if (vehType && vehType !== '' && ownershipType && ownershipType !== '' && fuelType && fuelType !== '' && parkingType && parkingType !== '') {
+    data.vehicles.push({
+      household_id: data.household.household_id,
+      vehicle_number: i + 1,
+      veh_type: vehType,
+      ownership_type: ownershipType,
+      fuel_type: fuelType,
+      parking_type: parkingType,
+      surveyor_name: data.household.surveyor_name,
+      timestamp: data.household.timestamp
+    });
+  } else {
+    console.warn(`Vehicle entry ${i + 1} skipped: Incomplete data (veh_type: ${vehType}, ownership: ${ownershipType}, fuel: ${fuelType}, parking: ${parkingType})`);
+  }
+});
       });
 
       let tripIndex = 0;
