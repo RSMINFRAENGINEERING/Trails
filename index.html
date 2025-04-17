@@ -158,14 +158,14 @@
         </select>
       </label>
       <label>Ownership:
-        <select name="ownership_type[]" required>
+        <select name="ownership_type[]">
           <option value="" selected>Please Select</option>
           <option>Owned</option>
           <option>Hired</option>
         </select>
       </label>
       <label>Fuel Type:
-        <select name="fuel_type[]" required>
+        <select name="fuel_type[]">
           <option value="" selected>Please Select</option>
           <option>Petrol</option>
           <option>Diesel</option>
@@ -175,7 +175,7 @@
         </select>
       </label>
       <label>Parking:
-        <select name="parking_type[]" required>
+        <select name="parking_type[]">
           <option value="" selected>Please Select</option>
           <option>Private Space</option>
           <option>On Street</option>
@@ -239,7 +239,7 @@
     // Templates
     const vehicleTemplate = `
       <label>Vehicle Type:
-        <select name="veh_type[]" required>
+        <select name="veh_type[]">
           <option value="" selected>Please Select</option>
           <option>Car</option>
           <option>Two-Wheeler</option>
@@ -249,14 +249,14 @@
         </select>
       </label>
       <label>Ownership:
-        <select name="ownership_type[]" required>
+        <select name="ownership_type[]">
           <option value="" selected>Please Select</option>
           <option>Owned</option>
           <option>Hired</option>
         </select>
       </label>
       <label>Fuel Type:
-        <select name="fuel_type[]" required>
+        <select name="fuel_type[]">
           <option value="" selected>Please Select</option>
           <option>Petrol</option>
           <option>Diesel</option>
@@ -266,7 +266,7 @@
         </select>
       </label>
       <label>Parking:
-        <select name="parking_type[]" required>
+        <select name="parking_type[]">
           <option value="" selected>Please Select</option>
           <option>Private Space</option>
           <option>On Street</option>
@@ -511,9 +511,11 @@
     // Functions
     function toggleOtherField(select, fieldId) {
       const otherField = document.getElementById(fieldId);
-      otherField.style.display = select.value === 'Other' || select.value === '3' || select.value === '7' || select.value === '9' || select.value === '11' || select.value === '15' || select.value === '5' || select.value === '4' || select.value === '6' ? 'block' : 'none';
-      if (otherField.style.display === 'none') {
-        otherField.querySelector('input').value = '';
+      const isOtherSelected = select.value === 'Other' || select.value === '3' || select.value === '7' || select.value === '9' || select.value === '11' || select.value === '15' || select.value === '5' || select.value === '4' || select.value === '6';
+      otherField.style.display = isOtherSelected ? 'block' : 'none';
+      if (!isOtherSelected) {
+        const input = otherField.querySelector('input');
+        if (input) input.value = '';
       }
     }
 
@@ -612,6 +614,7 @@
     }
 
     function submitToGoogleSheets(data) {
+      console.log('Submitting to Google Sheets:', data);
       return new Promise((resolve) => {
         const hiddenForm = document.getElementById('hidden-form');
         const hiddenData = document.getElementById('hidden-data');
@@ -627,38 +630,38 @@
       const timestamp = new Date().toISOString();
       const data = {
         household: {
-          household_id: formData.get('household_id'),
-          surveyor_name: formData.get('surveyor_name'),
-          surveyor_hhid: formData.get('surveyor_hhid'),
-          submission_date: formData.get('submission_date'),
+          household_id: formData.get('household_id') || '',
+          surveyor_name: formData.get('surveyor_name') || '',
+          surveyor_hhid: formData.get('surveyor_hhid') || '',
+          submission_date: formData.get('submission_date') || '',
           timestamp: timestamp,
-          ward_no: formData.get('ward_no'),
-          taz_no: formData.get('taz_no'),
-          head_name: formData.get('head_name'),
-          door_no: formData.get('door_no'),
-          address: formData.get('address'),
-          latitude: formData.get('latitude'),
-          longitude: formData.get('longitude'),
-          mobile: formData.get('mobile'),
-          household_type: formData.get('household_type'),
+          ward_no: formData.get('ward_no') || '',
+          taz_no: formData.get('taz_no') || '',
+          head_name: formData.get('head_name') || '',
+          door_no: formData.get('door_no') || '',
+          address: formData.get('address') || '',
+          latitude: formData.get('latitude') || '',
+          longitude: formData.get('longitude') || '',
+          mobile: formData.get('mobile') || '',
+          household_type: formData.get('household_type') || '',
           other_household_type: formData.get('other_household_type') || '',
-          house_ownership: formData.get('house_ownership'),
-          num_rooms: formData.get('num_rooms'),
-          num_earners: formData.get('num_earners'),
-          income: formData.get('income'),
-          exp_transport: formData.get('exp_transport'),
-          exp_housing: formData.get('exp_housing'),
-          exp_education: formData.get('exp_education'),
-          exp_food: formData.get('exp_food'),
-          exp_health: formData.get('exp_health'),
-          exp_others: formData.get('exp_others'),
-          nearest_pt_station: formData.get('nearest_pt_station'),
-          pt_distance: formData.get('pt_distance'),
-          walk_time: formData.get('walk_time'),
-          waiting_time: formData.get('waiting_time'),
-          weekly_usage: formData.get('weekly_usage'),
-          pt_feedback: formData.get('pt_feedback'),
-          pt_suggestions: formData.get('pt_suggestions')
+          house_ownership: formData.get('house_ownership') || '',
+          num_rooms: formData.get('num_rooms') || '',
+          num_earners: formData.get('num_earners') || '',
+          income: formData.get('income') || '',
+          exp_transport: formData.get('exp_transport') || '',
+          exp_housing: formData.get('exp_housing') || '',
+          exp_education: formData.get('exp_education') || '',
+          exp_food: formData.get('exp_food') || '',
+          exp_health: formData.get('exp_health') || '',
+          exp_others: formData.get('exp_others') || '',
+          nearest_pt_station: formData.get('nearest_pt_station') || '',
+          pt_distance: formData.get('pt_distance') || '',
+          walk_time: formData.get('walk_time') || '',
+          waiting_time: formData.get('waiting_time') || '',
+          weekly_usage: formData.get('weekly_usage') || '',
+          pt_feedback: formData.get('pt_feedback') || '',
+          pt_suggestions: formData.get('pt_suggestions') || ''
         },
         vehicles: [],
         members: [],
@@ -668,7 +671,7 @@
 
       // Vehicles
       const vehicleEntries = document.querySelectorAll('#vehicles .entry');
-      console.log('Collecting vehicle data:', vehicleEntries.length, 'entries found');
+      console.log(`Collecting vehicle data: ${vehicleEntries.length} entries found`);
       vehicleEntries.forEach((entry, i) => {
         const vehType = entry.querySelector('select[name="veh_type[]"]')?.value || '';
         const ownershipType = entry.querySelector('select[name="ownership_type[]"]')?.value || '';
@@ -686,14 +689,16 @@
             timestamp: timestamp
           };
           data.vehicles.push(vehicleData);
-          console.log('Vehicle added:', vehicleData);
+          console.log(`Vehicle ${i + 1} added:`, vehicleData);
+        } else {
+          console.log(`Vehicle ${i + 1} skipped: no fields filled`);
         }
       });
 
       // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
         const memberId = member.dataset.memberId;
-        const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`)?.value;
+        const hasTrips = member.querySelector(`select[name="has_trips_${memberId}"]`)?.value || '';
 
         // Add Member
         const memberData = {
@@ -723,6 +728,7 @@
         };
         if (memberData.relation) {
           data.members.push(memberData);
+          console.log(`Member ${memberId} added:`, memberData);
         }
 
         // Add Trips and Transfers
@@ -753,6 +759,7 @@
             };
             if (tripData.mode_of_transport) {
               data.trips.push(tripData);
+              console.log(`Trip ${tripId} added:`, tripData);
             }
 
             // Add Transfers
@@ -774,6 +781,7 @@
               };
               if (transferData.mode) {
                 data.transfers.push(transferData);
+                console.log(`Transfer ${transferData.transfer_id} added:`, transferData);
               }
             });
           });
@@ -787,6 +795,7 @@
       const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
       storedData.push(data);
       localStorage.setItem('surveyData', JSON.stringify(storedData));
+      console.log('Data saved to localStorage:', data);
     }
 
     function downloadLocalExcel() {
@@ -804,6 +813,7 @@
         trips.push(...item.trips);
         transfers.push(...item.transfers);
       });
+      console.log('Excel export data:', { households, vehicles, members, trips, transfers });
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(households), 'Households');
