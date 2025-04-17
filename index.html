@@ -161,7 +161,6 @@
       </select><span class="error">This field is required</span>
     </label>
 
-    <label>Vehicle Information</label>
     <label>Has Vehicles?:
       <select name="has_vehicles" id="has_vehicles" onchange="toggleVehicleSection(this)" required>
         <option value="" selected>Please Select</option>
@@ -228,10 +227,15 @@
     <div id="members"></div>
     <button type="button" onclick="addMember()">+ Add Member</button>
     <button type="button" onclick="submitLocal()">Save Locally</button>
+    <button type="button" onclick="submitGoogleSheets()">Submit to Google Sheets</button>
     <button type="button" onclick="downloadLocalExcel()">Download Local Records</button>
     <div class="success-message" id="success-message"></div>
     <div class="failure-message" id="failure-message"></div>
   </form>
+  <form id="hidden-form" action="https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec" method="POST" target="hidden-iframe">
+    <input type="hidden" name="data" id="hidden-data">
+  </form>
+  <iframe name="hidden-iframe" style="display: none;" onload="handleIframeLoad()"></iframe>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
@@ -532,7 +536,6 @@
     function toggleOtherField(select, otherFieldName) {
       const otherInput = select.parentElement.querySelector(`input[name="${otherFieldName}"]`);
       if (otherInput) {
-        // Check if "Other" is an option in the select
         const hasOtherOption = Array.from(select.options).some(option => option.value === 'Other' || option.text === 'Other');
         if (hasOtherOption && select.value === 'Other') {
           otherInput.style.display = 'block';
@@ -651,23 +654,18 @@
       let isValid = true;
       const errors = [];
 
-      // Clear previous error messages
       document.querySelectorAll('.error').forEach(error => error.style.display = 'none');
 
-      // Validate household fields
       const householdFields = document.querySelectorAll('#survey-form > label > [required]:not([name="mobile"])');
       householdFields.forEach(field => {
         if (field.hasAttribute('required') && !field.value && field.name !== 'num_transfers' && field.name !== 'num_vehicles') {
           isValid = false;
           const error = field.nextElementSibling;
-          if (error && error.classList.contains('error')) {
-            error.style.display = 'block';
-          }
+          if (error && error.classList.contains('error')) error.style.display = 'block';
           errors.push(`Household field "${field.name}" is required.`);
         }
       });
 
-      // Validate "Other" fields for household
       const householdOtherFields = document.querySelectorAll('#survey-form > label > select');
       householdOtherFields.forEach(select => {
         const otherInput = select.parentElement.querySelector('.other-specify');
@@ -675,13 +673,10 @@
           isValid = false;
           errors.push(`Please specify "${select.name}" when "Other" is selected.`);
           const error = select.nextElementSibling;
-          if (error && error.classList.contains('error')) {
-            error.style.display = 'block';
-          }
+          if (error && error.classList.contains('error')) error.style.display = 'block';
         }
       });
 
-      // Validate vehicle fields if present
       const hasVehiclesSelect = document.getElementById('has_vehicles');
       const hasVehicles = hasVehiclesSelect ? hasVehiclesSelect.value : '';
       if (hasVehicles === 'yes') {
@@ -697,16 +692,13 @@
             if (!field.value && field.name !== 'num_vehicles') {
               isValid = false;
               const error = field.nextElementSibling;
-              if (error && error.classList.contains('error')) {
-                error.style.display = 'block';
-              }
+              if (error && error.classList.contains('error')) error.style.display = 'block';
               errors.push(`Vehicle ${vehicleId} field "${field.name}" is required.`);
             }
           });
         });
       }
 
-      // Validate members, trips, and transfers
       const members = document.querySelectorAll('#members .entry');
       if (members.length === 0) {
         isValid = false;
@@ -719,14 +711,11 @@
           if (!field.value && field.name !== 'num_transfers') {
             isValid = false;
             const error = field.nextElementSibling;
-            if (error && error.classList.contains('error')) {
-              error.style.display = 'block';
-            }
+            if (error && error.classList.contains('error')) error.style.display = 'block';
             errors.push(`Member ${memberId} field "${field.name}" is required.`);
           }
         });
 
-        // Validate "Other" fields for member
         const memberOtherFields = member.querySelectorAll('select');
         memberOtherFields.forEach(select => {
           const otherInput = select.parentElement.querySelector('.other-specify');
@@ -734,9 +723,7 @@
             isValid = false;
             errors.push(`Please specify "${select.name}" for member ${memberId} when "Other" is selected.`);
             const error = select.nextElementSibling;
-            if (error && error.classList.contains('error')) {
-              error.style.display = 'block';
-            }
+            if (error && error.classList.contains('error')) error.style.display = 'block';
           }
         });
 
@@ -757,14 +744,11 @@
               if (!field.value && field.name !== 'num_transfers') {
                 isValid = false;
                 const error = field.nextElementSibling;
-                if (error && error.classList.contains('error')) {
-                  error.style.display = 'block';
-                }
+                if (error && error.classList.contains('error')) error.style.display = 'block';
                 errors.push(`Trip ${tripId} field "${field.name}" is required.`);
               }
             });
 
-            // Validate "Other" fields for trip
             const tripOtherFields = trip.querySelectorAll('select');
             tripOtherFields.forEach(select => {
               const otherInput = select.parentElement.querySelector('.other-specify');
@@ -772,9 +756,7 @@
                 isValid = false;
                 errors.push(`Please specify "${select.name}" for trip ${tripId} when "Other" is selected.`);
                 const error = select.nextElementSibling;
-                if (error && error.classList.contains('error')) {
-                  error.style.display = 'block';
-                }
+                if (error && error.classList.contains('error')) error.style.display = 'block';
               }
             });
 
@@ -783,9 +765,7 @@
               if (numTransfersInput && !numTransfersInput.value) {
                 isValid = false;
                 const error = numTransfersInput.nextElementSibling;
-                if (error && error.classList.contains('error')) {
-                  error.style.display = 'block';
-                }
+                if (error && error.classList.contains('error')) error.style.display = 'block';
                 errors.push(`Number of transfers for trip ${tripId} is required.`);
               } else {
                 const numTransfers = parseInt(numTransfersInput.value) || 0;
@@ -800,14 +780,11 @@
                     if (!field.value) {
                       isValid = false;
                       const error = field.nextElementSibling;
-                      if (error && error.classList.contains('error')) {
-                        error.style.display = 'block';
-                      }
+                      if (error && error.classList.contains('error')) error.style.display = 'block';
                       errors.push(`Transfer ${transferIndex + 1} in Trip ${tripId} field "${field.name}" is required.`);
                     }
                   });
 
-                  // Validate "Other" fields for transfer
                   const transferOtherFields = transfer.querySelectorAll('select');
                   transferOtherFields.forEach(select => {
                     const otherInput = select.parentElement.querySelector('.other-specify');
@@ -815,17 +792,13 @@
                       isValid = false;
                       errors.push(`Please specify "${select.name}" for transfer ${transferIndex + 1} in trip ${tripId} when "Other" is selected.`);
                       const error = select.nextElementSibling;
-                      if (error && error.classList.contains('error')) {
-                        error.style.display = 'block';
-                      }
+                      if (error && error.classList.contains('error')) error.style.display = 'block';
                     }
                   });
                 });
               }
             }
           });
-        } else if (hasTrips === 'no') {
-          // No action needed, already handled by toggleTrips
         }
       });
 
@@ -883,34 +856,30 @@
         transfers: []
       };
 
-      // Collect vehicle data
       const hasVehicles = formData.get('has_vehicles') || '';
-      if (hasVehicles === 'yes') {
-        document.querySelectorAll('#vehicles .entry').forEach((vehicle) => {
+      if (hasVehicles === 'yes' || hasVehicles === 'no') {
+        document.querySelectorAll('#vehicles .entry').forEach((vehicle, i) => {
           const vehicleId = vehicle.dataset.vehicleId;
-          const vehicleData = {
+          const vehType = vehicle.querySelector(`select[name="veh_type_${vehicleId}"]`)?.value || '';
+          data.vehicles.push({
             household_id: data.household.household_id,
             vehicle_id: vehicleId,
-            veh_type: vehicle.querySelector(`select[name="veh_type_${vehicleId}"]`)?.value || '',
+            vehicle_number: i + 1,
+            veh_type: vehType,
             ownership_type: vehicle.querySelector(`select[name="ownership_type_${vehicleId}"]`)?.value || '',
             fuel_type: vehicle.querySelector(`select[name="fuel_type_${vehicleId}"]`)?.value || '',
             parking_type: vehicle.querySelector(`select[name="parking_type_${vehicleId}"]`)?.value || '',
             surveyor_name: data.household.surveyor_name,
             timestamp: timestamp
-          };
-          if (vehicleData.veh_type) {
-            data.vehicles.push(vehicleData);
-          }
+          });
         });
       }
 
-      // Members and Trips
       document.querySelectorAll('#members .entry').forEach((member) => {
         const memberId = member.dataset.memberId;
         const hasTripsSelect = member.querySelector(`select[name="has_trips_${memberId}"]`);
         const hasTrips = hasTripsSelect ? hasTripsSelect.value : '';
 
-        // Add Member
         const memberData = {
           household_id: data.household.household_id,
           member_id: memberId,
@@ -940,7 +909,6 @@
           data.members.push(memberData);
         }
 
-        // Add Trips and Transfers
         if (hasTrips === 'yes') {
           const tripEntries = member.querySelectorAll('.trip-entries .entry');
           tripEntries.forEach((trip) => {
@@ -968,7 +936,6 @@
               data.trips.push(tripData);
             }
 
-            // Add Transfers
             const numTransfers = parseInt(tripData.num_transfers) || 0;
             if (numTransfers > 0) {
               const transferEntries = trip.querySelectorAll('.transfer-entries .entry');
@@ -1001,8 +968,7 @@
     function saveToLocalExcel(data) {
       const storedData = JSON.parse(localStorage.getItem('surveyData') || '[]');
       storedData.push(data);
-      const dataString = JSON.stringify(storedData);
-      if (dataString.length > 4 * 1024 * 1024) {
+      if (JSON.stringify(storedData).length > 4 * 1024 * 1024) {
         alert('Local storage is nearly full. Please download and clear records.');
       }
       localStorage.setItem('surveyData', JSON.stringify(storedData));
@@ -1036,46 +1002,70 @@
       alert('Local records downloaded as Excel!');
     }
 
+    let lastSubmissionStatus = null;
+
+    function handleIframeLoad() {
+      if (lastSubmissionStatus) {
+        lastSubmissionStatus.resolve({ success: true });
+      }
+    }
+
+    function submitToGoogleSheets(data) {
+      return new Promise((resolve) => {
+        const hiddenForm = document.getElementById('hidden-form');
+        const hiddenData = document.getElementById('hidden-data');
+        hiddenData.value = JSON.stringify(data);
+        lastSubmissionStatus = { resolve };
+        hiddenForm.submit();
+      });
+    }
+
     async function submitLocal() {
       try {
         if (!validateForm()) return;
         if (!confirm('Are you sure you want to save the form? All data will be cleared after saving.')) return;
         const data = collectFormData();
 
-        // Save to local storage first
         saveToLocalExcel(data);
 
-        // Submit to Google Sheets
-        const response = await fetch('https://script.google.com/macros/s/AKfycbxYnoE6O2jpJh2wdXVuU562ioKe_y3Z2xobbXFarX6zUvBFFae_x9oDh0eToJOH63ke/exec', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        });
-
-        if (response.ok) {
-          const result = await response.text();
-          document.getElementById('success-message').textContent = 'Data submitted successfully: ' + result;
-          document.getElementById('success-message').style.display = 'block';
-          document.getElementById('failure-message').style.display = 'none';
-        } else {
-          const errorText = await response.text();
-          document.getElementById('failure-message').textContent = 'Submission failed: ' + errorText;
-          document.getElementById('failure-message').style.display = 'block';
-          document.getElementById('success-message').style.display = 'none';
-          throw new Error('Submission failed');
-        }
-
-        alert('Survey saved locally and submitted to Google Sheets!');
+        alert('Survey saved locally as Excel!');
         document.getElementById('survey-form').reset();
         resetForm();
       } catch (e) {
-        console.error('Error in submitLocal:', e);
+        alert('Error saving survey locally: ' + e.message);
+      }
+    }
+
+    async function submitGoogleSheets() {
+      try {
+        if (!validateForm()) return;
+        if (!confirm('Are you sure you want to submit the form? All data will be cleared after saving.')) return;
+        const data = collectFormData();
+        const result = await submitToGoogleSheets(data);
+        if (result.success) {
+          document.getElementById('success-message').textContent = 'Survey submitted to Google Sheets successfully!';
+          document.getElementById('success-message').style.display = 'block';
+          document.getElementById('failure-message').style.display = 'none';
+          saveToLocalExcel(data); // Backup
+          alert('Survey submitted to Google Sheets and saved locally!');
+        } else {
+          document.getElementById('failure-message').textContent = 'Error submitting to Google Sheets. Data saved locally.';
+          document.getElementById('failure-message').style.display = 'block';
+          document.getElementById('success-message').style.display = 'none';
+          saveToLocalExcel(data);
+          throw new Error('Submission failed');
+        }
+        document.getElementById('survey-form').reset();
+        resetForm();
+      } catch (e) {
+        console.error('Error in submitGoogleSheets:', e);
         document.getElementById('failure-message').textContent = 'Error submitting to Google Sheets: ' + e.message;
         document.getElementById('failure-message').style.display = 'block';
         document.getElementById('success-message').style.display = 'none';
+        saveToLocalExcel(data);
         alert('Survey saved locally, but Google Sheets submission failed.');
+        document.getElementById('survey-form').reset();
+        resetForm();
       }
     }
 
